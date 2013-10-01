@@ -62,6 +62,9 @@ public:
             //quit
             else if(cmd[0]=='.')
             {
+                base_cmd.angular.z = 0.00;
+                base_cmd.linear.x = 0.00;
+                cmd_vel_pub_.publish(base_cmd);
                 break;
             }
 

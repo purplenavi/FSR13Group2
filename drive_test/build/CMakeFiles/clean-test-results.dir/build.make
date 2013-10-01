@@ -43,7 +43,7 @@ CMAKE_BINARY_DIR = /home/axu/fuerte_workspace/fsr2013/drive_test/build
 include CMakeFiles/clean-test-results.dir/progress.make
 
 CMakeFiles/clean-test-results:
-	if ! rm -rf /home/axu/catkin_ws/build/test_results/drive_test; then echo WARNING:\ failed\ to\ remove\ test-results\ directory ; fi
+	if ! rm -rf /home/axu/.ros/test_results/drive_test; then echo WARNING:\ failed\ to\ remove\ test-results\ directory ; fi
 
 clean-test-results: CMakeFiles/clean-test-results
 clean-test-results: CMakeFiles/clean-test-results.dir/build.make
