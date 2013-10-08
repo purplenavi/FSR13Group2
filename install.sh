@@ -14,3 +14,4 @@ rosws set amor-ros-pkg https://code.google.com/p/amor-ros-pkg/ --hg -v fuerte
 rosws update amor-ros-pkg
 source ~/fuerte_workspace/setup.bash
 rosmake ROSARIA
+sudo apt-get install ros-fuerte-openni-camera ros-fuerte-openni-launch
