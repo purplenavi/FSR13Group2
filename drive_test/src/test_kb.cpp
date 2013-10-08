@@ -35,8 +35,11 @@ public:
     RobotDriver(ros::NodeHandle &nh)
     {
         nh_ = nh;
+        
+        //Publisher to publish messages to cmd_vel_pub
         cmd_vel_pub_ = nh_.advertise<geometry_msgs::Twist>("/RosAria/cmd_vel", 1);
         
+        //Subscriber for callback
         sub_ = nh_.subscribe("scan", 1000, &RobotDriver::callback, this);
         
         drive_state = init;
@@ -103,7 +106,9 @@ public:
         if (drive_state == done) {
             return;
         }
-    
+        
+        
+        //Counting laser front, left, right
         float amount = ( msg.angle_max - msg.angle_min ) / msg.angle_increment;
         int index = amount / 2;
         int left = amount / 6;
@@ -136,11 +141,12 @@ public:
    
    void drive ()
    {
+       //Drive function. No turning
        geometry_msgs::Twist base_cmd;
        
        base_cmd.linear.x = 0.25;
        base_cmd.angular.z = 0.00;
-       
+       //publish the drive command
        cmd_vel_pub_.publish(base_cmd);
        
        drive_state = driving;
@@ -152,7 +158,7 @@ public:
        
        base_cmd.linear.x = 0.0;
        base_cmd.angular.z = 0.75;
-       
+       //Publish turn command
        cmd_vel_pub_.publish(base_cmd);
        
        drive_state = turning;
@@ -164,7 +170,7 @@ public:
        
        base_cmd.linear.x = 0.0;
        base_cmd.angular.z = 0.0;
-       
+       //Stop the robot
        cmd_vel_pub_.publish(base_cmd);
        
        drive_state = done;
@@ -185,6 +191,7 @@ int main(int argc, char** argv)
     RobotDriver driver(nh);
     
     //driver.driveKeyboard();
+    //Loop
     ros::spin();
     
 }
