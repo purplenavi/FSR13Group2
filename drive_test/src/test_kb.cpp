@@ -69,21 +69,21 @@ public:
             //Move forward
             if(cmd[0]=='+')
             {
-                base_cmd.linear.x = 0.25;
+                base_cmd.linear.x = 0.10;
             }
 
             //left Yaw + forward
             else if(cmd[0]=='l')
             {
-                base_cmd.angular.z = 0.75;
-                base_cmd.linear.x = 0.25;
+                base_cmd.angular.z = 0.25;
+                base_cmd.linear.x = 0.10;
             }
 
             //right yaw + forward 
             else if(cmd[0]=='r')
             {
-                base_cmd.angular.z = -0.75;
-                base_cmd.linear.x = 0.25;
+                base_cmd.angular.z = -0.25;
+                base_cmd.linear.x = 0.10;
             }
 
             //quit
@@ -190,8 +190,7 @@ int main(int argc, char** argv)
 
     RobotDriver driver(nh);
     
-    //driver.driveKeyboard();
-    //Loop
-    ros::spin();
+    driver.driveKeyboard();
+    //ros::spin();
     
 }
