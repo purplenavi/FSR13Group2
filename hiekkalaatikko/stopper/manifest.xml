@@ -1,0 +1,15 @@
+<package>
+  <description brief="stopper">
+
+     stopper
+
+  </description>
+  <author>Axu</author>
+  <license>BSD</license>
+  <review status="unreviewed" notes=""/>
+  <url>http://ros.org/wiki/stopper</url>
+  <depend package="roscpp"/>
+
+</package>
+
+

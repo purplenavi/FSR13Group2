@@ -1,0 +1,25 @@
+<launch>
+
+  <!--<include file="$(find AS_84_3144_launch)/launch/pioneer.launch" />-->
+
+  <!-- <node pkg="pioneer_set_tf" type="tf_broadcaster" name="tf_broadcaster" output="screen" /> -->
+
+  <!-- publish the static transform from the center of the robot to the laser rangefinder (required for slam_gmapping) -->
+<!--
+    static_transform_publisher x y z yaw pitch roll frame_id child_frame_id period_in_ms 
+    - Publish a static coordinate transform to tf using an x/y/z offset and
+    yaw/pitch/roll. The period, in milliseconds, specifies how often to send a
+    transform. 100ms (10hz) is a good value.
+
+    static_transform_publisher x y z qx qy qz qw frame_id child_frame_id  period_in_ms
+    - Publish a static coordinate transform to tf using an x/y/z offset and
+    quaternion. The period, in milliseconds, specifies how often to send a
+    transform. 100ms (10hz) is a good value.-->
+  
+  <node pkg="tf" type="static_transform_publisher" name="base_link_to_laser" args="-0.075 -0.015 0.54 0 0 0 base_link laser 100" />
+
+  <node pkg="stopper" type="stopper" name="stopper" output="screen" />
+
+
+</launch>
+

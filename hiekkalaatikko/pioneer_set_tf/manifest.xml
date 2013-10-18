@@ -1,0 +1,17 @@
+<package>
+  <description brief="pioneer_set_tf">
+
+     pioneer_set_tf
+
+  </description>
+  <author>Axu</author>
+  <license>BSD</license>
+  <review status="unreviewed" notes=""/>
+  <url>http://ros.org/wiki/pioneer_set_tf</url>
+  <depend package="roscpp"/>
+  <depend package="tf"/>
+  <depend package="geometry_msgs"/>
+
+</package>
+
+
