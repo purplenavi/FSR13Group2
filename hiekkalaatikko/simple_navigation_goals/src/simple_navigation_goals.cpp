@@ -2,16 +2,16 @@
 #include <move_base_msgs/MoveBaseAction.h>
 #include <actionlib/client/simple_action_client.h>
 
-typedef actionlib::SimpleActionClient<move_base_msgs::MoveBaseAction> MoveBaseClient;
+static actionlib::SimpleActionClient<move_base_msgs::MoveBaseAction> *client=NULL;
 
 int main(int argc, char** argv){
   ros::init(argc, argv, "simple_navigation_goals");
 
   //tell the action client that we want to spin a thread by default
-  MoveBaseClient ac("move_base", true);
+  client = new actionlib::SimpleActionClient<move_base_msgs::MoveBaseAction> ("move_base", true);
 
   //wait for the action server to come up
-  while(!ac.waitForServer(ros::Duration(5.0))){
+  while(!client->waitForServer(ros::Duration(5.0))){
     ROS_INFO("Waiting for the move_base action server to come up");
   }
 
@@ -25,11 +25,11 @@ int main(int argc, char** argv){
   goal.target_pose.pose.orientation.w = 1.0;
 
   ROS_INFO("Sending goal");
-  ac.sendGoal(goal);
+  client->sendGoal(goal);
 
-  ac.waitForResult();
+  client->waitForResult();
 
-  if(ac.getState() == actionlib::SimpleClientGoalState::SUCCEEDED)
+  if(client->getState() == actionlib::SimpleClientGoalState::SUCCEEDED)
     ROS_INFO("Hooray, the base moved 1 meter forward");
   else
     ROS_INFO("The base failed to move forward 1 meter for some reason");
