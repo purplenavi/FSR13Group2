@@ -6,12 +6,18 @@
 
 #IncludeRegexTransform: 
 
-/home/axu/fuerte_workspace/fsr2013/drive_test/src/test_kb.cpp
+/home/group2/fuerte_workspace/fsr2013/drive_test/src/test_kb.cpp
 iostream
 -
 ros/ros.h
 -
 geometry_msgs/Twist.h
+-
+std_msgs/String.h
+-
+sensor_msgs/LaserScan.h
+-
+sstream
 -
 
 /opt/ros/fuerte/include/XmlRpcDecl.h
@@ -659,4 +665,54 @@ ros/forwards.h
 /opt/ros/fuerte/include/ros/ros/forwards.h
 
 /opt/ros/fuerte/include/rosconsole/macros_generated.h
+
+/opt/ros/fuerte/include/sensor_msgs/LaserScan.h
+string
+-
+vector
+-
+map
+-
+ros/types.h
+-
+ros/serialization.h
+-
+ros/builtin_message_traits.h
+-
+ros/message_operations.h
+-
+std_msgs/Header.h
+-
+
+/opt/ros/fuerte/include/std_msgs/Header.h
+string
+-
+vector
+-
+map
+-
+ros/types.h
+-
+ros/serialization.h
+-
+ros/builtin_message_traits.h
+-
+ros/message_operations.h
+-
+
+/opt/ros/fuerte/include/std_msgs/String.h
+string
+-
+vector
+-
+map
+-
+ros/types.h
+-
+ros/serialization.h
+-
+ros/builtin_message_traits.h
+-
+ros/message_operations.h
+-
 

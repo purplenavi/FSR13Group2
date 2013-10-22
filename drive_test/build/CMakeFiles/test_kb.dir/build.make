@@ -31,11 +31,14 @@ CMAKE_COMMAND = /usr/bin/cmake
 # The command to remove a file.
 RM = /usr/bin/cmake -E remove -f
 
+# The program to use to edit the cache.
+CMAKE_EDIT_COMMAND = /usr/bin/ccmake
+
 # The top-level source directory on which CMake was run.
-CMAKE_SOURCE_DIR = /home/axu/fuerte_workspace/fsr2013/drive_test
+CMAKE_SOURCE_DIR = /home/group2/fuerte_workspace/fsr2013/drive_test
 
 # The top-level build directory on which CMake was run.
-CMAKE_BINARY_DIR = /home/axu/fuerte_workspace/fsr2013/drive_test/build
+CMAKE_BINARY_DIR = /home/group2/fuerte_workspace/fsr2013/drive_test/build
 
 # Include any dependencies generated for this target.
 include CMakeFiles/test_kb.dir/depend.make
@@ -52,17 +55,29 @@ CMakeFiles/test_kb.dir/src/test_kb.o: ../manifest.xml
 CMakeFiles/test_kb.dir/src/test_kb.o: /opt/ros/fuerte/share/roslang/manifest.xml
 CMakeFiles/test_kb.dir/src/test_kb.o: /opt/ros/fuerte/share/roscpp/manifest.xml
 CMakeFiles/test_kb.dir/src/test_kb.o: /opt/ros/fuerte/share/geometry_msgs/manifest.xml
-	$(CMAKE_COMMAND) -E cmake_progress_report /home/axu/fuerte_workspace/fsr2013/drive_test/build/CMakeFiles $(CMAKE_PROGRESS_1)
+CMakeFiles/test_kb.dir/src/test_kb.o: /opt/ros/fuerte/stacks/bullet/manifest.xml
+CMakeFiles/test_kb.dir/src/test_kb.o: /opt/ros/fuerte/share/sensor_msgs/manifest.xml
+CMakeFiles/test_kb.dir/src/test_kb.o: /opt/ros/fuerte/share/rosconsole/manifest.xml
+CMakeFiles/test_kb.dir/src/test_kb.o: /opt/ros/fuerte/stacks/geometry/angles/manifest.xml
+CMakeFiles/test_kb.dir/src/test_kb.o: /opt/ros/fuerte/share/rospy/manifest.xml
+CMakeFiles/test_kb.dir/src/test_kb.o: /opt/ros/fuerte/share/rostest/manifest.xml
+CMakeFiles/test_kb.dir/src/test_kb.o: /opt/ros/fuerte/share/roswtf/manifest.xml
+CMakeFiles/test_kb.dir/src/test_kb.o: /opt/ros/fuerte/share/message_filters/manifest.xml
+CMakeFiles/test_kb.dir/src/test_kb.o: /opt/ros/fuerte/stacks/geometry/tf/manifest.xml
+CMakeFiles/test_kb.dir/src/test_kb.o: /opt/ros/fuerte/share/nav_msgs/manifest.xml
+CMakeFiles/test_kb.dir/src/test_kb.o: /opt/ros/fuerte/stacks/geometry/tf/msg_gen/generated
+CMakeFiles/test_kb.dir/src/test_kb.o: /opt/ros/fuerte/stacks/geometry/tf/srv_gen/generated
+	$(CMAKE_COMMAND) -E cmake_progress_report /home/group2/fuerte_workspace/fsr2013/drive_test/build/CMakeFiles $(CMAKE_PROGRESS_1)
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Building CXX object CMakeFiles/test_kb.dir/src/test_kb.o"
-	/usr/bin/c++   $(CXX_DEFINES) $(CXX_FLAGS) -W -Wall -Wno-unused-parameter -fno-strict-aliasing -pthread -o CMakeFiles/test_kb.dir/src/test_kb.o -c /home/axu/fuerte_workspace/fsr2013/drive_test/src/test_kb.cpp
+	/usr/bin/c++   $(CXX_DEFINES) $(CXX_FLAGS) -DBT_USE_DOUBLE_PRECISION -DBT_EULER_DEFAULT_ZYX -W -Wall -Wno-unused-parameter -fno-strict-aliasing -pthread -o CMakeFiles/test_kb.dir/src/test_kb.o -c /home/group2/fuerte_workspace/fsr2013/drive_test/src/test_kb.cpp
 
 CMakeFiles/test_kb.dir/src/test_kb.i: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing CXX source to CMakeFiles/test_kb.dir/src/test_kb.i"
-	/usr/bin/c++  $(CXX_DEFINES) $(CXX_FLAGS) -W -Wall -Wno-unused-parameter -fno-strict-aliasing -pthread -E /home/axu/fuerte_workspace/fsr2013/drive_test/src/test_kb.cpp > CMakeFiles/test_kb.dir/src/test_kb.i
+	/usr/bin/c++  $(CXX_DEFINES) $(CXX_FLAGS) -DBT_USE_DOUBLE_PRECISION -DBT_EULER_DEFAULT_ZYX -W -Wall -Wno-unused-parameter -fno-strict-aliasing -pthread -E /home/group2/fuerte_workspace/fsr2013/drive_test/src/test_kb.cpp > CMakeFiles/test_kb.dir/src/test_kb.i
 
 CMakeFiles/test_kb.dir/src/test_kb.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/test_kb.dir/src/test_kb.s"
-	/usr/bin/c++  $(CXX_DEFINES) $(CXX_FLAGS) -W -Wall -Wno-unused-parameter -fno-strict-aliasing -pthread -S /home/axu/fuerte_workspace/fsr2013/drive_test/src/test_kb.cpp -o CMakeFiles/test_kb.dir/src/test_kb.s
+	/usr/bin/c++  $(CXX_DEFINES) $(CXX_FLAGS) -DBT_USE_DOUBLE_PRECISION -DBT_EULER_DEFAULT_ZYX -W -Wall -Wno-unused-parameter -fno-strict-aliasing -pthread -S /home/group2/fuerte_workspace/fsr2013/drive_test/src/test_kb.cpp -o CMakeFiles/test_kb.dir/src/test_kb.s
 
 CMakeFiles/test_kb.dir/src/test_kb.o.requires:
 .PHONY : CMakeFiles/test_kb.dir/src/test_kb.o.requires
@@ -98,6 +113,6 @@ CMakeFiles/test_kb.dir/clean:
 .PHONY : CMakeFiles/test_kb.dir/clean
 
 CMakeFiles/test_kb.dir/depend:
-	cd /home/axu/fuerte_workspace/fsr2013/drive_test/build && $(CMAKE_COMMAND) -E cmake_depends "Unix Makefiles" /home/axu/fuerte_workspace/fsr2013/drive_test /home/axu/fuerte_workspace/fsr2013/drive_test /home/axu/fuerte_workspace/fsr2013/drive_test/build /home/axu/fuerte_workspace/fsr2013/drive_test/build /home/axu/fuerte_workspace/fsr2013/drive_test/build/CMakeFiles/test_kb.dir/DependInfo.cmake --color=$(COLOR)
+	cd /home/group2/fuerte_workspace/fsr2013/drive_test/build && $(CMAKE_COMMAND) -E cmake_depends "Unix Makefiles" /home/group2/fuerte_workspace/fsr2013/drive_test /home/group2/fuerte_workspace/fsr2013/drive_test /home/group2/fuerte_workspace/fsr2013/drive_test/build /home/group2/fuerte_workspace/fsr2013/drive_test/build /home/group2/fuerte_workspace/fsr2013/drive_test/build/CMakeFiles/test_kb.dir/DependInfo.cmake --color=$(COLOR)
 .PHONY : CMakeFiles/test_kb.dir/depend
 

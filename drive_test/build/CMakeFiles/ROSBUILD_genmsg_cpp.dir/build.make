@@ -31,11 +31,14 @@ CMAKE_COMMAND = /usr/bin/cmake
 # The command to remove a file.
 RM = /usr/bin/cmake -E remove -f
 
+# The program to use to edit the cache.
+CMAKE_EDIT_COMMAND = /usr/bin/ccmake
+
 # The top-level source directory on which CMake was run.
-CMAKE_SOURCE_DIR = /home/axu/fuerte_workspace/fsr2013/drive_test
+CMAKE_SOURCE_DIR = /home/group2/fuerte_workspace/fsr2013/drive_test
 
 # The top-level build directory on which CMake was run.
-CMAKE_BINARY_DIR = /home/axu/fuerte_workspace/fsr2013/drive_test/build
+CMAKE_BINARY_DIR = /home/group2/fuerte_workspace/fsr2013/drive_test/build
 
 # Utility rule file for ROSBUILD_genmsg_cpp.
 
@@ -57,6 +60,6 @@ CMakeFiles/ROSBUILD_genmsg_cpp.dir/clean:
 .PHONY : CMakeFiles/ROSBUILD_genmsg_cpp.dir/clean
 
 CMakeFiles/ROSBUILD_genmsg_cpp.dir/depend:
-	cd /home/axu/fuerte_workspace/fsr2013/drive_test/build && $(CMAKE_COMMAND) -E cmake_depends "Unix Makefiles" /home/axu/fuerte_workspace/fsr2013/drive_test /home/axu/fuerte_workspace/fsr2013/drive_test /home/axu/fuerte_workspace/fsr2013/drive_test/build /home/axu/fuerte_workspace/fsr2013/drive_test/build /home/axu/fuerte_workspace/fsr2013/drive_test/build/CMakeFiles/ROSBUILD_genmsg_cpp.dir/DependInfo.cmake --color=$(COLOR)
+	cd /home/group2/fuerte_workspace/fsr2013/drive_test/build && $(CMAKE_COMMAND) -E cmake_depends "Unix Makefiles" /home/group2/fuerte_workspace/fsr2013/drive_test /home/group2/fuerte_workspace/fsr2013/drive_test /home/group2/fuerte_workspace/fsr2013/drive_test/build /home/group2/fuerte_workspace/fsr2013/drive_test/build /home/group2/fuerte_workspace/fsr2013/drive_test/build/CMakeFiles/ROSBUILD_genmsg_cpp.dir/DependInfo.cmake --color=$(COLOR)
 .PHONY : CMakeFiles/ROSBUILD_genmsg_cpp.dir/depend
 

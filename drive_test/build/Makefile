@@ -35,19 +35,22 @@ CMAKE_COMMAND = /usr/bin/cmake
 # The command to remove a file.
 RM = /usr/bin/cmake -E remove -f
 
+# The program to use to edit the cache.
+CMAKE_EDIT_COMMAND = /usr/bin/ccmake
+
 # The top-level source directory on which CMake was run.
-CMAKE_SOURCE_DIR = /home/axu/fuerte_workspace/fsr2013/drive_test
+CMAKE_SOURCE_DIR = /home/group2/fuerte_workspace/fsr2013/drive_test
 
 # The top-level build directory on which CMake was run.
-CMAKE_BINARY_DIR = /home/axu/fuerte_workspace/fsr2013/drive_test/build
+CMAKE_BINARY_DIR = /home/group2/fuerte_workspace/fsr2013/drive_test/build
 
 #=============================================================================
 # Targets provided globally by CMake.
 
 # Special rule for the target edit_cache
 edit_cache:
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --cyan "Running interactive CMake command-line interface..."
-	/usr/bin/cmake -i .
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --cyan "Running CMake cache editor..."
+	/usr/bin/ccmake -H$(CMAKE_SOURCE_DIR) -B$(CMAKE_BINARY_DIR)
 .PHONY : edit_cache
 
 # Special rule for the target edit_cache
@@ -66,9 +69,9 @@ rebuild_cache/fast: rebuild_cache
 
 # The main all target
 all: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /home/axu/fuerte_workspace/fsr2013/drive_test/build/CMakeFiles /home/axu/fuerte_workspace/fsr2013/drive_test/build/CMakeFiles/progress.marks
+	$(CMAKE_COMMAND) -E cmake_progress_start /home/group2/fuerte_workspace/fsr2013/drive_test/build/CMakeFiles /home/group2/fuerte_workspace/fsr2013/drive_test/build/CMakeFiles/progress.marks
 	$(MAKE) -f CMakeFiles/Makefile2 all
-	$(CMAKE_COMMAND) -E cmake_progress_start /home/axu/fuerte_workspace/fsr2013/drive_test/build/CMakeFiles 0
+	$(CMAKE_COMMAND) -E cmake_progress_start /home/group2/fuerte_workspace/fsr2013/drive_test/build/CMakeFiles 0
 .PHONY : all
 
 # The main clean target
@@ -159,6 +162,19 @@ clean-test-results: cmake_check_build_system
 clean-test-results/fast:
 	$(MAKE) -f CMakeFiles/clean-test-results.dir/build.make CMakeFiles/clean-test-results.dir/build
 .PHONY : clean-test-results/fast
+
+#=============================================================================
+# Target rules for targets named odometry
+
+# Build rule for target.
+odometry: cmake_check_build_system
+	$(MAKE) -f CMakeFiles/Makefile2 odometry
+.PHONY : odometry
+
+# fast build rule for target.
+odometry/fast:
+	$(MAKE) -f CMakeFiles/odometry.dir/build.make CMakeFiles/odometry.dir/build
+.PHONY : odometry/fast
 
 #=============================================================================
 # Target rules for targets named rosbuild_precompile
@@ -304,6 +320,21 @@ tests/fast:
 .PHONY : tests/fast
 
 # target to build an object file
+src/odometry.o:
+	$(MAKE) -f CMakeFiles/odometry.dir/build.make CMakeFiles/odometry.dir/src/odometry.o
+.PHONY : src/odometry.o
+
+# target to preprocess a source file
+src/odometry.i:
+	$(MAKE) -f CMakeFiles/odometry.dir/build.make CMakeFiles/odometry.dir/src/odometry.i
+.PHONY : src/odometry.i
+
+# target to generate assembly for a file
+src/odometry.s:
+	$(MAKE) -f CMakeFiles/odometry.dir/build.make CMakeFiles/odometry.dir/src/odometry.s
+.PHONY : src/odometry.s
+
+# target to build an object file
 src/test_kb.o:
 	$(MAKE) -f CMakeFiles/test_kb.dir/build.make CMakeFiles/test_kb.dir/src/test_kb.o
 .PHONY : src/test_kb.o
@@ -330,6 +361,7 @@ help:
 	@echo "... ROSBUILD_gensrv_lisp"
 	@echo "... clean-test-results"
 	@echo "... edit_cache"
+	@echo "... odometry"
 	@echo "... rebuild_cache"
 	@echo "... rosbuild_precompile"
 	@echo "... rosbuild_premsgsrvgen"
@@ -342,6 +374,9 @@ help:
 	@echo "... test-results-run"
 	@echo "... test_kb"
 	@echo "... tests"
+	@echo "... src/odometry.o"
+	@echo "... src/odometry.i"
+	@echo "... src/odometry.s"
 	@echo "... src/test_kb.o"
 	@echo "... src/test_kb.i"
 	@echo "... src/test_kb.s"

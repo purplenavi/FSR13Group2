@@ -58,4 +58,7 @@ CMakeFiles/test_kb.dir/src/test_kb.o: /opt/ros/fuerte/include/ros/types.h
 CMakeFiles/test_kb.dir/src/test_kb.o: /opt/ros/fuerte/include/ros/wall_timer.h
 CMakeFiles/test_kb.dir/src/test_kb.o: /opt/ros/fuerte/include/ros/wall_timer_options.h
 CMakeFiles/test_kb.dir/src/test_kb.o: /opt/ros/fuerte/include/rosconsole/macros_generated.h
+CMakeFiles/test_kb.dir/src/test_kb.o: /opt/ros/fuerte/include/sensor_msgs/LaserScan.h
+CMakeFiles/test_kb.dir/src/test_kb.o: /opt/ros/fuerte/include/std_msgs/Header.h
+CMakeFiles/test_kb.dir/src/test_kb.o: /opt/ros/fuerte/include/std_msgs/String.h
 

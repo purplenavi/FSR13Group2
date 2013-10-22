@@ -5,7 +5,7 @@ raytrace_range: 3.0
 
 #inflation_radius: 0.35
 
-inflation_radius: 0.35
+inflation_radius: 0.30
 
 
 # footprint from the file costmap_common_params_p3dx.yaml (p2os_launch package)
