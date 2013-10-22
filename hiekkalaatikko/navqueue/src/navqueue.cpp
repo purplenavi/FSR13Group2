@@ -2,6 +2,8 @@
 #include <move_base_msgs/MoveBaseAction.h>
 #include <actionlib/client/simple_action_client.h>
 
+#import "waypoint.h"
+
 static actionlib::SimpleActionClient<move_base_msgs::MoveBaseAction> *client=NULL;
 
 int main(int argc, char** argv){
@@ -17,7 +19,10 @@ int main(int argc, char** argv){
     
     move_base_msgs::MoveBaseGoal goal;
     
-    std::vector< geometry_msgs::PoseStamped > waypoints = new std::vector< geometry_msgs::PoseStamped >;
+    // Should create a global plan path and run through it several times
+    std::vector< Waypoint > waypoints ) new std::vector< Waypoint >;
+    
+    std::vector< geometry_msgs::PoseStamped > path_plan = new std::vector< geometry_msgs::PoseStamped >;
     
     // Run through waypoints
     int runs_left = 10;
