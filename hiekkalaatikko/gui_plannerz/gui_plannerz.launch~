@@ -1,0 +1,7 @@
+<launch>
+  <include file="$(find my_robot_2dnav)/move_base.launch" />
+  <include file="$(find my_robot_2dnav)/gmapping.launch" />
+  <node pkg="waypoint_navigation" type="waypoint_navigation" name="waypoint_navigation" output="screen" />
+  <!-- <node pkg="nav_comp_planner" type="nav_comp_planner.py" name="nav_comp_planner" output="screen" /> -->
+</launch>
+
