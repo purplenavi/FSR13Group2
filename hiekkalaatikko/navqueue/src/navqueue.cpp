@@ -2,8 +2,6 @@
 #include <move_base_msgs/MoveBaseAction.h>
 #include <actionlib/client/simple_action_client.h>
 
-#include "waypoint.h"
-
 static actionlib::SimpleActionClient<move_base_msgs::MoveBaseAction> *client=NULL;
 
 int main(int argc, char** argv){
@@ -19,9 +17,15 @@ int main(int argc, char** argv){
     
     move_base_msgs::MoveBaseGoal goal;
     
-    std::vector<Waypoint> waypoints = new std::vector<Waypoint>;
+    std::vector< geometry_msgs::PoseStamped > waypoints = new std::vector< geometry_msgs::PoseStamped >;
     
     // Run through waypoints
+    int runs_left = 10;
+    bool running = true;
+    
+    while (runs_left > 0 && running) {
+        
+    }
     
     // Release memory
     free(waypoints);
