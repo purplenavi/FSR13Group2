@@ -6,7 +6,7 @@
 
 #IncludeRegexTransform: 
 
-/home/axu/fuerte_workspace/fsr2013/hiekkalaatikko/point2point_navigation/src/point2point_navigation.cpp
+/home/group2/fuerte_workspace/fsr2013/hiekkalaatikko/point2point_navigation/src/point2point_navigation.cpp
 math.h
 -
 tf/transform_datatypes.h
@@ -18,8 +18,6 @@ move_base_msgs/MoveBaseAction.h
 actionlib/client/simple_action_client.h
 -
 nav_msgs/Path.h
--
-std_msgs/Float64.h
 -
 
 /opt/ros/fuerte/include/XmlRpcDecl.h
@@ -1071,22 +1069,6 @@ ros/forwards.h
 /opt/ros/fuerte/include/ros/ros/forwards.h
 
 /opt/ros/fuerte/include/rosconsole/macros_generated.h
-
-/opt/ros/fuerte/include/std_msgs/Float64.h
-string
--
-vector
--
-map
--
-ros/types.h
--
-ros/serialization.h
--
-ros/builtin_message_traits.h
--
-ros/message_operations.h
--
 
 /opt/ros/fuerte/include/std_msgs/Header.h
 string

@@ -2,14 +2,14 @@
     <master auto="start"/>
 
     <!-- robot config, f.ex ROSARIA, tf, sensors... -->
-    <include file="robot_config.launch" />
-   <!-- <include file="${find pioneer_2dnav}/robot_config.launch" />-->
+    <!--<include file="robot_config.launch" />-->
+    <include file="$(find pioneer_2dnav)/robot_config.launch" />
 
     <!-- Run map server -->
-    <!--<node name="map_server" pkg="map_server" type="map_server" args="map.yaml"/>-->
+    <node name="map_server" pkg="map_server" type="map_server" args="map.yaml"/>
 
     <!-- Run AMCL -->
-    <include file="amcl.launch" />
+    <include file="$(find pioneer_2dnav)/amcl.launch" />
 
     <node pkg="move_base" type="move_base" respawn="false" name="move_base" output="screen">
       <remap from="cmd_vel" to="RosAria/cmd_vel" />
@@ -19,11 +19,11 @@
       <!--param name="base_global_planner" value="$(find navqueue)/navqueue"/-->
 
       <!-- Costmap documentation: http://wiki.ros.org/costmap_2d -->
-      <rosparam file="costmap_common_params.yaml" command="load" ns="global_costmap" />
-      <rosparam file="costmap_common_params.yaml" command="load" ns="local_costmap" />
-      <rosparam file="local_costmap_params.yaml" command="load" />
-      <rosparam file="global_costmap_params.yaml" command="load" />
-      <rosparam file="base_local_planner_params.yaml" command="load" />
+      <rosparam file="$(find pioneer_2dnav)/costmap_common_params.yaml" command="load" ns="global_costmap" />
+      <rosparam file="$(find pioneer_2dnav)/costmap_common_params.yaml" command="load" ns="local_costmap" />
+      <rosparam file="$(find pioneer_2dnav)/local_costmap_params.yaml" command="load" />
+      <rosparam file="$(find pioneer_2dnav)/global_costmap_params.yaml" command="load" />
+      <rosparam file="$(find pioneer_2dnav)/base_local_planner_params.yaml" command="load" />
                             
         <!-- Parameters for move_base itself, Documentation: http://wiki.ros.org/move_base -->
         <!-- Start recovery behaviour if the robot hasn't moved further than 0.3m in 5s -->

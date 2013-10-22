@@ -1,7 +1,7 @@
 #include <ros/ros.h>
 #include <tf/transform_broadcaster.h>
 
-static const char NODE[] = "pioneer_tf_publisher";
+static const char NODE[] = "tf_broadcaster";
 //Theres no rotation
 static const tf::Quaternion ROTATION(0, 0, 0, 1);
 //10cm forward 20cm up

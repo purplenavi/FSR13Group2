@@ -31,11 +31,14 @@ CMAKE_COMMAND = /usr/bin/cmake
 # The command to remove a file.
 RM = /usr/bin/cmake -E remove -f
 
+# The program to use to edit the cache.
+CMAKE_EDIT_COMMAND = /usr/bin/ccmake
+
 # The top-level source directory on which CMake was run.
-CMAKE_SOURCE_DIR = /home/axu/fuerte_workspace/fsr2013/hiekkalaatikko/point2point_navigation
+CMAKE_SOURCE_DIR = /home/group2/fuerte_workspace/fsr2013/hiekkalaatikko/point2point_navigation
 
 # The top-level build directory on which CMake was run.
-CMAKE_BINARY_DIR = /home/axu/fuerte_workspace/fsr2013/hiekkalaatikko/point2point_navigation/build
+CMAKE_BINARY_DIR = /home/group2/fuerte_workspace/fsr2013/hiekkalaatikko/point2point_navigation/build
 
 # Include any dependencies generated for this target.
 include CMakeFiles/point2point_navigation.dir/depend.make
@@ -104,17 +107,17 @@ CMakeFiles/point2point_navigation.dir/src/point2point_navigation.o: /opt/ros/fue
 CMakeFiles/point2point_navigation.dir/src/point2point_navigation.o: /opt/ros/fuerte/stacks/navigation/costmap_2d/msg_gen/generated
 CMakeFiles/point2point_navigation.dir/src/point2point_navigation.o: /opt/ros/fuerte/stacks/navigation/base_local_planner/msg_gen/generated
 CMakeFiles/point2point_navigation.dir/src/point2point_navigation.o: /opt/ros/fuerte/stacks/navigation/navfn/srv_gen/generated
-	$(CMAKE_COMMAND) -E cmake_progress_report /home/axu/fuerte_workspace/fsr2013/hiekkalaatikko/point2point_navigation/build/CMakeFiles $(CMAKE_PROGRESS_1)
+	$(CMAKE_COMMAND) -E cmake_progress_report /home/group2/fuerte_workspace/fsr2013/hiekkalaatikko/point2point_navigation/build/CMakeFiles $(CMAKE_PROGRESS_1)
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Building CXX object CMakeFiles/point2point_navigation.dir/src/point2point_navigation.o"
-	/usr/bin/c++   $(CXX_DEFINES) $(CXX_FLAGS) -DBT_USE_DOUBLE_PRECISION -DBT_EULER_DEFAULT_ZYX -W -Wall -Wno-unused-parameter -fno-strict-aliasing -pthread -o CMakeFiles/point2point_navigation.dir/src/point2point_navigation.o -c /home/axu/fuerte_workspace/fsr2013/hiekkalaatikko/point2point_navigation/src/point2point_navigation.cpp
+	/usr/bin/c++   $(CXX_DEFINES) $(CXX_FLAGS) -DBT_USE_DOUBLE_PRECISION -DBT_EULER_DEFAULT_ZYX -W -Wall -Wno-unused-parameter -fno-strict-aliasing -pthread -o CMakeFiles/point2point_navigation.dir/src/point2point_navigation.o -c /home/group2/fuerte_workspace/fsr2013/hiekkalaatikko/point2point_navigation/src/point2point_navigation.cpp
 
 CMakeFiles/point2point_navigation.dir/src/point2point_navigation.i: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing CXX source to CMakeFiles/point2point_navigation.dir/src/point2point_navigation.i"
-	/usr/bin/c++  $(CXX_DEFINES) $(CXX_FLAGS) -DBT_USE_DOUBLE_PRECISION -DBT_EULER_DEFAULT_ZYX -W -Wall -Wno-unused-parameter -fno-strict-aliasing -pthread -E /home/axu/fuerte_workspace/fsr2013/hiekkalaatikko/point2point_navigation/src/point2point_navigation.cpp > CMakeFiles/point2point_navigation.dir/src/point2point_navigation.i
+	/usr/bin/c++  $(CXX_DEFINES) $(CXX_FLAGS) -DBT_USE_DOUBLE_PRECISION -DBT_EULER_DEFAULT_ZYX -W -Wall -Wno-unused-parameter -fno-strict-aliasing -pthread -E /home/group2/fuerte_workspace/fsr2013/hiekkalaatikko/point2point_navigation/src/point2point_navigation.cpp > CMakeFiles/point2point_navigation.dir/src/point2point_navigation.i
 
 CMakeFiles/point2point_navigation.dir/src/point2point_navigation.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/point2point_navigation.dir/src/point2point_navigation.s"
-	/usr/bin/c++  $(CXX_DEFINES) $(CXX_FLAGS) -DBT_USE_DOUBLE_PRECISION -DBT_EULER_DEFAULT_ZYX -W -Wall -Wno-unused-parameter -fno-strict-aliasing -pthread -S /home/axu/fuerte_workspace/fsr2013/hiekkalaatikko/point2point_navigation/src/point2point_navigation.cpp -o CMakeFiles/point2point_navigation.dir/src/point2point_navigation.s
+	/usr/bin/c++  $(CXX_DEFINES) $(CXX_FLAGS) -DBT_USE_DOUBLE_PRECISION -DBT_EULER_DEFAULT_ZYX -W -Wall -Wno-unused-parameter -fno-strict-aliasing -pthread -S /home/group2/fuerte_workspace/fsr2013/hiekkalaatikko/point2point_navigation/src/point2point_navigation.cpp -o CMakeFiles/point2point_navigation.dir/src/point2point_navigation.s
 
 CMakeFiles/point2point_navigation.dir/src/point2point_navigation.o.requires:
 .PHONY : CMakeFiles/point2point_navigation.dir/src/point2point_navigation.o.requires
@@ -150,6 +153,6 @@ CMakeFiles/point2point_navigation.dir/clean:
 .PHONY : CMakeFiles/point2point_navigation.dir/clean
 
 CMakeFiles/point2point_navigation.dir/depend:
-	cd /home/axu/fuerte_workspace/fsr2013/hiekkalaatikko/point2point_navigation/build && $(CMAKE_COMMAND) -E cmake_depends "Unix Makefiles" /home/axu/fuerte_workspace/fsr2013/hiekkalaatikko/point2point_navigation /home/axu/fuerte_workspace/fsr2013/hiekkalaatikko/point2point_navigation /home/axu/fuerte_workspace/fsr2013/hiekkalaatikko/point2point_navigation/build /home/axu/fuerte_workspace/fsr2013/hiekkalaatikko/point2point_navigation/build /home/axu/fuerte_workspace/fsr2013/hiekkalaatikko/point2point_navigation/build/CMakeFiles/point2point_navigation.dir/DependInfo.cmake --color=$(COLOR)
+	cd /home/group2/fuerte_workspace/fsr2013/hiekkalaatikko/point2point_navigation/build && $(CMAKE_COMMAND) -E cmake_depends "Unix Makefiles" /home/group2/fuerte_workspace/fsr2013/hiekkalaatikko/point2point_navigation /home/group2/fuerte_workspace/fsr2013/hiekkalaatikko/point2point_navigation /home/group2/fuerte_workspace/fsr2013/hiekkalaatikko/point2point_navigation/build /home/group2/fuerte_workspace/fsr2013/hiekkalaatikko/point2point_navigation/build /home/group2/fuerte_workspace/fsr2013/hiekkalaatikko/point2point_navigation/build/CMakeFiles/point2point_navigation.dir/DependInfo.cmake --color=$(COLOR)
 .PHONY : CMakeFiles/point2point_navigation.dir/depend
 

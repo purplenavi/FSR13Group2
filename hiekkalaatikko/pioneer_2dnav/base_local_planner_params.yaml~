@@ -1,29 +1,24 @@
 TrajectoryPlannerROS:
-  max_vel_x: 0.8
-  min_vel_x: 0.1
-  #max_rotational_vel: 0.8
+  max_vel_x: 0.6
+  min_vel_x: 0.05
   max_rotational_vel: 1.5
 
-  #min_in_place_rotational_vel: 0.3
-  min_in_place_rotational_vel: 0.6
+  min_in_place_rotational_vel: 0.3
 
   backup_vel: -0.2
 
-  # by default scoring is done in cells. whrn meter_scoring is true is's done
+  # by default scoring is done in cells. when meter_scoring is true is's done
   # in meters. this affects to goal_distance and path_distance and gdist_scale
   # and pdist_scale parameters  
-  # meter_scoring: true  
+  meter_scoring: true  
 
-  sim_time: 2.0
-
-  #path_distance_bias: 0.2
-  #goal_distance_bias: 0.2
+  sim_time: 1.0
 
   #pdist_scale: 0.2
   #gdist_scale: 0.2
   
-  path_distance_bias: 0.6
-  goal_distance_bias: 0.6
+  path_distance_bias: 0.3
+  goal_distance_bias: 0.3
   
   # more weight to avoiding obstacles. TODO: test if neccessary (simulation shows that it is...)
   #occdist_scale: 0.5
@@ -34,9 +29,6 @@ TrajectoryPlannerROS:
   dwa: false
  
   acc_lim_th: 3.2
-
-  #acc_lim_x: 2.5
-  #acc_lim_y: 2.5
   
   acc_lim_x: 2.5
   acc_lim_y: 2.5
@@ -45,6 +37,3 @@ TrajectoryPlannerROS:
   
   yaw_goal_tolerance: 1.0
   xy_goal_tolerance: 0.1
-
-  #yaw_goal_tolerance: 5.0
-  #xy_goal_tolerance: 0.2
