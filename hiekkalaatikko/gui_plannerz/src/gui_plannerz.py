@@ -283,7 +283,7 @@ class RoboMap(QGraphicsView):
             else:
                 self.polygon = self.scene.addPolygon(QPolygonF([QPointF(point.x(), point.y())]), Qt.red)
                 self.polygon.setZValue(1000.0)
-                self.draw_point(point.x(), point.y(), Qt.pink, add_point=True)
+                self.draw_point(point.x(), point.y(), Qt.yellow, add_point=True)
 
 if __name__ == "__main__":
     from python_qt_binding.QtGui import QApplication
