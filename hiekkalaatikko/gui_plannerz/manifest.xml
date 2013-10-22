@@ -1,0 +1,17 @@
+<package>
+  <description brief="gui_plannerz">
+
+     gui_plannerz
+
+  </description>
+  <author>Axu</author>
+  <license>BSD</license>
+  <review status="unreviewed" notes=""/>
+  <url>http://ros.org/wiki/gui_plannerz</url>
+  <depend package="rospy"/>
+  <depend package="tf"/>
+  <depend package="python_qt_binding"/>
+
+</package>
+
+

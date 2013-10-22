@@ -1,0 +1,19 @@
+<package>
+  <description brief="point2point_navigation">
+
+     point2point_navigation
+
+  </description>
+  <author>Axu</author>
+  <license>BSD</license>
+  <review status="unreviewed" notes=""/>
+  <url>http://ros.org/wiki/point2point_navigation</url>
+  <depend package="roscpp"/>
+  <depend package="move_base"/>
+  <depend package="nav_msgs"/>
+  <depend package="actionlib"/>
+  <depend package="actionlib_msgs"/>
+
+</package>
+
+

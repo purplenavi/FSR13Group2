@@ -14,6 +14,9 @@
     <node pkg="move_base" type="move_base" respawn="false" name="move_base" output="screen">
       <remap from="cmd_vel" to="RosAria/cmd_vel" />
       <remap from="odom" to="RosAria/pose" />
+      
+      <!-- Global planner (navigator) -->
+      <!--param name="base_global_planner" value="$(find navqueue)/navqueue"/-->
 
       <!-- Costmap documentation: http://wiki.ros.org/costmap_2d -->
       <rosparam file="costmap_common_params.yaml" command="load" ns="global_costmap" />

@@ -1,0 +1,6 @@
+<launch>
+  <include file="$(find pioneer_2dnav)/move_base.launch" />
+  <include file="$(find pioneer_2dnav)/gmapping.launch" />
+  <node pkg="point2point_navigation" type="point2poin2_navigation" name="point2point_navigation" output="screen" />
+</launch>
+
