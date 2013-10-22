@@ -1,0 +1,7 @@
+<launch>
+  <node pkg="LMS1xx" type="LMS100" name="laser" output="screen">
+      <param name="host" value="192.168.0.1" />
+      <param name="frame_id" value="/laser" />
+  </node>
+
+</launch>
