@@ -131,17 +131,17 @@ class RoboMap(QGraphicsView):
         item.translate(-self.w, 0)
    
     def update_position(self, x, y):
-        point = QPoint(x, y)
+        point = QPointF(x, y)
         if self.robot_point:
             self.scene.removeItem(self.robot_point)
-        self.robot_point = self.draw_point(p.x(), p.y(), color=Qt.green, rad=self.transform().m11()*2.0)
+        self.robot_point = self.draw_point(point.x(), point.y(), color=Qt.green, rad=self.transform().m11()*2.0)
         self.mirror(self.robot_point)
         self.scene.removeItem(self.robot_point)
         self.scene.addItem(self.robot_point)
        
     def update_position_current(self):
         (t, r) = self.tf.lookupTransform('/map','base_link', rospy.Time(0))
-        self.position_changed.emit(t[0], t[1])
+        self.position_change.emit(t[0], t[1])
    
     def callback(self, msg):
         self.w = msg.info.width
