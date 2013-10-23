@@ -3,13 +3,13 @@ import roslib
 roslib.load_manifest('gui_plannerz')
 import rospy
 from nav_msgs.msg import OccupancyGrid, Path
-import python_qt_binding
-from python_qt_binding.QtCore import Signal, Slot, QPointF, qWarning, Qt, QTimer
-from python_qt_binding.QtGui import QWidget, QMessageBox, QDoubleSpinBox, QLabel, QPixmap, QBrush, QImage, QGraphicsView, QGraphicsScene, QPainterPath, QPen, QPolygonF, QVBoxLayout, QHBoxLayout, QColor, qRgb, QPushButton, QRadioButton
 import numpy
 from math import sqrt, atan2,atan, pi, degrees
 import tf
 from tf.transformations import quaternion_from_euler
+import python_qt_binding
+from python_qt_binding.QtCore import Signal, Slot, QPointF, qWarning, Qt, QTimer
+from python_qt_binding.QtGui import QWidget, QMessageBox, QDoubleSpinBox, QLabel, QPixmap, QBrush, QImage, QGraphicsView, QGraphicsScene, QPainterPath, QPen, QPolygonF, QVBoxLayout, QHBoxLayout, QColor, qRgb, QPushButton, QRadioButton
 from geometry_msgs.msg import PoseStamped
 
 
@@ -33,29 +33,13 @@ class Widgetti(QWidget):
         self.delete_plan = QPushButton('Delete planz')
         self.delete_plan.clicked.connect(self.robomap.deletePlan)
      
-        self.gmode = QRadioButton('GMode')
-        self.gmode.toggled.connect(self.setMode)
-        self.gmode.setChecked(True)
-        self.pmode = QRadioButton('Pmode')
-        self.mode_layout = QHBoxLayout()
-        self.mode_layout.addWidget(self.gmode)
-        self.mode_layout.addWidget(self.pmode)
-        self.gpublisher = rospy.Publisher('move_base_simple/goal', PoseStamped)
-     
         self.button_layout.addWidget(self.drive)
         self.button_layout.addWidget(self.delete_plan)
-        self.layout.addWidget(QLabel('Use mouse to draw path. Rclick adds last point'))
-        self.layout.addLayout(self.button_layout)
-        self.layout.addLayout(self.mode_layout)
+        
         self.layout.addWidget(self.robomap)
+        self.layout.addLayout(self.button_layout)
+        self.layout.addWidget(QLabel('Use mouse to draw path. Rclick adds last point'))
         self.setLayout(self.layout)
-
-    def setMode(self, gmode_toggle):
-        self.drive.setDisabled(gmode_toggle)
-        self.delete_plan.setDisabled(gmode_toggle)
-        self.robomap.gmode=gmode_toggle
-        self.robomap.deletePlan()
-        return
 
     def Engage(self):
         plan = self.robomap.get_plan()
@@ -106,9 +90,6 @@ class RoboMap(QGraphicsView):
         self.scene = QGraphicsScene()
         self.subscriber = rospy.Subscriber(topic, OccupancyGrid, self.callback)
         self.setScene(self.scene)
-        self.gmode = None
-        self.gpoint = None
-        self.gline = None
         self.timer = None
         self.robot_point = None
         self.position_change.connect(self.update_position)
@@ -133,14 +114,16 @@ class RoboMap(QGraphicsView):
     def update_position(self, x, y):
         point = QPointF(x, y)
         if self.robot_point:
+            print 'Old point: ' + str(self.robot_point)
             self.scene.removeItem(self.robot_point)
         self.robot_point = self.draw_point(point.x(), point.y(), color=Qt.green, rad=self.transform().m11()*2.0)
         self.mirror(self.robot_point)
-        self.scene.removeItem(self.robot_point)
         self.scene.addItem(self.robot_point)
+        print 'Added robot to point ' + str(point.x()) + ' ' + str(point.y())
        
     def update_position_current(self):
         (t, r) = self.tf.lookupTransform('/map','base_link', rospy.Time(0))
+        print 'calling update position...'
         self.position_change.emit(t[0], t[1])
    
     def callback(self, msg):
@@ -148,6 +131,7 @@ class RoboMap(QGraphicsView):
         self.h = msg.info.height
         self.resolution = msg.info.resolution
         self.origin = (msg.info.origin.position.x, msg.info.origin.position.y)
+        print 'Origin at:' + str(msg.info.origin.position.x) + ' ' + str(msg.info.origin.position.y)
         arr = numpy.array(msg.data, dtype=numpy.uint8, copy=False, order='C')
         arr = arr.reshape((self.h, self.w))
         if self.w % 4:
@@ -193,12 +177,6 @@ class RoboMap(QGraphicsView):
             for z in self.points:
                 self.scene.removeItem(z)
             self.points = None
-        if self.gpoint:
-            self.scene.removeItem(self.gpoint)
-            self.gpoint = None
-        if self.gline:
-            self.scene.removeItem(self.gline)
-            self.gline = None
    
     def draw_point(self, x, y, color=Qt.magenta, rad=1.0, add_point=False):
         ell = self.scene.addEllipse(x-rad, y-rad, rad*2.0, rad*2.0, color, QBrush(Qt.SolidPattern))
@@ -211,79 +189,50 @@ class RoboMap(QGraphicsView):
         return ell
        
     def mousePressEvent(self, e):
-        if self.gmode:
-            if self.gpoint:
-                self.scene.removeItem(self.gpoint)
-                self.gpoint = None
-            if self.gline:
-                self.scene.removeItem(self.gline)
-                self.gline = None
-            point = self.mapToScene(e.x(), e.y())
-            self.gpoint = self.draw_point(point.x(), point.y(), Qt.red, 2.0)
-            self.gline = self.scene.addLine(point.x(), point.y(), point.x(), point.y(), Qt.red)
-            self.gline.setZValue(1000.0)
-        else:
-            if e.button() == Qt.RightButton:
-                return
-            self.setMouseTracking(True)
+        if e.button() == Qt.RightButton:
+            return
+        self.setMouseTracking(True)
            
     def mouseMoveEvent(self, e):
         point = self.mapToScene(e.x(), e.y())
-        if self.gmode and self.gline:
-            tmp = self.gline.line()
-            tmp.setP2(QPointF(point.x(), point.y()))
-            self.gline.setLine(tmp)
-        else:
-            if self.point:
-                self.scene.removeItem(self.point)
-            self.point = self.draw_point(point.x(), point.y(), Qt.yellow, 1.0)
-            if self.polygon:
-                porygon = self.polygon.polygon()
-                if porygon.size() > 1:
-                    porygon.replace(porygon.size()-1, QPointF(point.x(), point.y()))
-                else:
-                    porygon.append(QPointF(point.x(), point.y()))
-                self.polygon.setPolygon(porygon)
+        if self.point:
+            self.scene.removeItem(self.point)
+        self.point = self.draw_point(point.x(), point.y(), Qt.yellow, 1.0)
+        if self.polygon:
+            porygon = self.polygon.polygon()
+            if porygon.size() > 1:
+                porygon.replace(porygon.size()-1, QPointF(point.x(), point.y()))
             else:
-                return
+                porygon.append(QPointF(point.x(), point.y()))
+            self.polygon.setPolygon(porygon)
+        else:
+            return
+
+    def wheelEvent(self, e):
+        e.ignore()
+        if e.delta() > 0:
+            self.scale(1.30, 1.30)
+        else:
+            self.scale(0.7, 0.7)
        
     def mouseReleaseEvent(self, e):
         point = self.mapToScene(e.x(), e.y())
-        if self.gmode:
-            if self.resolution:
-                rect = self.gpoint.rect().center()
-                x1 = (((self.w/2) - rect.x()) + (self.w/2)) * self.resolution + self.origin[0]
-                x2 = (((self.w/2) - point.x()) + (self.w/2)) * self.resolution + self.origin[0]
-                y1 = rect.y() * self.resolution + self.origin[1]
-                y2 = point.y() * self.resolution + self.origin[1]
-                quaternion = quaternion_from_euler(0, 0, atan2(y2-y1, x2-x1))
-                goal = PoseStamped()
-                goal.header.stamp = rospy.Time.now()
-                goal.header.frame_id = "map"
-                goal.pose.position.x = x1
-                goal.pose.position.y = y1
-                goal.pose.orientation.w = quaternion[3]
-                goal.pose.orientation.z = quaternion[2]
-                self.parent.gpublisher.publish(goal)
-            else:
-                QMessageBox.critical(self, "No map, no goal man!", "Y Dig?")
+        if e.button() == Qt.RightButton:
+            self.setMouseTracking(False)
+            self.draw_point(point.x(), point.y(), add_point=True)
+            return
+        if self.point:
+            self.scene.removeItem(self.point)
+            self.point = None
+        if self.polygon:
+            porygon = self.polygon.polygon()
+            porygon.append(QPointF(point.x(), point.y()))
+            self.polygon.setPolygon(porygon)
+            self.draw_point(point.x(), point.y(), add_point=True)
         else:
-            if e.button() == Qt.RightButton:
-                self.setMouseTracking(False)
-                self.draw_point(point.x(), point.y(), add_point=True)
-                return
-            if self.point:
-                self.scene.removeItem(self.point)
-                self.point = None
-            if self.polygon:
-                porygon = self.polygon.polygon()
-                porygon.append(QPointF(point.x(), point.y()))
-                self.polygon.setPolygon(porygon)
-                self.draw_point(point.x(), point.y(), add_point=True)
-            else:
-                self.polygon = self.scene.addPolygon(QPolygonF([QPointF(point.x(), point.y())]), Qt.red)
-                self.polygon.setZValue(1000.0)
-                self.draw_point(point.x(), point.y(), Qt.yellow, add_point=True)
+            self.polygon = self.scene.addPolygon(QPolygonF([QPointF(point.x(), point.y())]), Qt.red)
+            self.polygon.setZValue(1000.0)
+            self.draw_point(point.x(), point.y(), Qt.yellow, add_point=True)
 
 if __name__ == "__main__":
     from python_qt_binding.QtGui import QApplication
