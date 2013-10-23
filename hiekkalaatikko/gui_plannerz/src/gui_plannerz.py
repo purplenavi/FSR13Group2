@@ -126,11 +126,11 @@ class RoboMap(QGraphicsView):
         if self.robot_point:
             print 'Old point: ' + str(self.robot_point)
             self.scene.removeItem(self.robot_point)
-        self.robot_point = self.draw_point(point.x(), point.y(), color=Qt.green, rad=self.transform().m11()*2.0)
+        self.robot_point = self.draw_point(point.x(), point.y(), color=Qt.green, rad=2.0)
         self.mirror(self.robot_point)
+        self.scene.removeItem(self.robot_point)
         self.scene.addItem(self.robot_point)
         print 'Added robot to point ' + str(point.x()) + ' ' + str(point.y())
-        self.parent.update_textbox('Added robot to point', (str(point.x()) + ' ' + str(point.y())))
        
     def update_position_current(self):
         (t, r) = self.tf.lookupTransform('/map','base_link', rospy.Time(0))
@@ -143,6 +143,7 @@ class RoboMap(QGraphicsView):
         self.resolution = msg.info.resolution
         self.origin = (msg.info.origin.position.x, msg.info.origin.position.y)
         print 'Origin at:' + str(msg.info.origin.position.x) + ' ' + str(msg.info.origin.position.y)
+        self.parent.update_textbox('Origin at:', (str(msg.info.origin.position.x) + ' ' + str(msg.info.origin.position.y)))
         arr = numpy.array(msg.data, dtype=numpy.uint8, copy=False, order='C')
         arr = arr.reshape((self.h, self.w))
         img = QImage(arr.reshape((arr.shape[0] * arr.shape[1])), self.w, self.h, QImage.Format_Indexed8)
@@ -189,6 +190,7 @@ class RoboMap(QGraphicsView):
    
     def draw_point(self, x, y, color=Qt.magenta, rad=1.0, add_point=False):
         ell = self.scene.addEllipse(x-rad, y-rad, rad*2.0, rad*2.0, color, QBrush(Qt.SolidPattern))
+        self.parent.update_textbox('Point added:', (str(x) + ' ' + str(y)))
         ell.setZValue(2000.0)
         if add_point:
             if self.points:
