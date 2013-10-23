@@ -6,7 +6,7 @@
     <include file="$(find pioneer_2dnav)/robot_config.launch" />
 
     <!-- Run map server -->
-    <node name="map_server" pkg="map_server" type="map_server" args="map.yaml"/>
+    <!--<node name="map_server" pkg="map_server" type="map_server" args="map.yaml"/>-->
 
     <!-- Run AMCL -->
     <include file="$(find pioneer_2dnav)/amcl.launch" />
