@@ -4,7 +4,7 @@ roslib.load_manifest('gui_plannerz')
 import rospy
 from nav_msgs.msg import OccupancyGrid, Path
 import numpy
-from math import sqrt, atan2
+from math import atan2
 import tf
 from tf.transformations import quaternion_from_euler
 import python_qt_binding
