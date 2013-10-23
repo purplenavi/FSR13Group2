@@ -9,7 +9,7 @@ import tf
 from tf.transformations import quaternion_from_euler
 import python_qt_binding
 from python_qt_binding.QtCore import Signal, Slot, QPointF, qWarning, Qt, QTimer
-from python_qt_binding.QtGui import QWidget, QMessageBox, QDoubleSpinBox, QLabel, QPixmap, QBrush, QImage, QGraphicsView, QGraphicsScene, QPainterPath, QPen, QPolygonF, QVBoxLayout, QHBoxLayout, QColor, qRgb, QPushButton, QRadioButton
+from python_qt_binding.QtGui import QWidget, QMessageBox, QTextEdit, QLabel, QPixmap, QBrush, QImage, QGraphicsView, QGraphicsScene, QPainterPath, QPen, QPolygonF, QVBoxLayout, QHBoxLayout, QColor, qRgb, QPushButton, QRadioButton
 from geometry_msgs.msg import PoseStamped
 
 
@@ -20,6 +20,7 @@ class Widgetti(QWidget):
         super(Widgetti, self).__init__()
         self.layout = QVBoxLayout()
         self.button_layout = QHBoxLayout()
+        self.map_layout = QHBoxLayout()
         self.tf = tf.TransformListener()
 
         self.robomap = RoboMap(tf = self.tf, parent=self)
@@ -32,14 +33,22 @@ class Widgetti(QWidget):
      
         self.delete_plan = QPushButton('Delete planz')
         self.delete_plan.clicked.connect(self.robomap.deletePlan)
+        self.debug_stream = QTextEdit(self)
+        self.debug_stream.insertPlainText('TESTING')
      
         self.button_layout.addWidget(self.drive)
         self.button_layout.addWidget(self.delete_plan)
         
-        self.layout.addWidget(self.robomap)
+        self.map_layout.addWidget(self.robomap)
+        self.map_layout.addWidget(self.debug_stream)
+        self.layout.addLayout(self.map_layout)
         self.layout.addLayout(self.button_layout)
         self.layout.addWidget(QLabel('Use mouse to draw path. Rclick adds last point'))
         self.setLayout(self.layout)
+
+    def update_textbox(self):
+        self.debug_stream.insertPlainText('Robot point:')
+        self.debug_stream.insertPlainText(str(self.robomap.robot_point))
 
     def Engage(self):
         plan = self.robomap.get_plan()
@@ -120,6 +129,7 @@ class RoboMap(QGraphicsView):
         self.mirror(self.robot_point)
         self.scene.addItem(self.robot_point)
         print 'Added robot to point ' + str(point.x()) + ' ' + str(point.y())
+        self.parent.update_textbox()
        
     def update_position_current(self):
         (t, r) = self.tf.lookupTransform('/map','base_link', rospy.Time(0))
@@ -240,6 +250,6 @@ if __name__ == "__main__":
     rospy.init_node("gui_plannerz")
     app = QApplication(sys.argv)
     q = Widgetti()
-    q.setMinimumSize(700, 800)
+    q.setMinimumSize(600, 700)
     q.show()
     app.exec_()
