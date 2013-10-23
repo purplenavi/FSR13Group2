@@ -1,5 +1,5 @@
 TrajectoryPlannerROS:
-  max_vel_x: 0.6
+  max_vel_x: 0.5
   min_vel_x: 0.05
   max_rotational_vel: 1.5
 
@@ -28,12 +28,12 @@ TrajectoryPlannerROS:
   # expensive than Trajectory Rollou
   dwa: false
  
-  acc_lim_th: 3.2
+  acc_lim_th: 1.5
   
-  acc_lim_x: 2.5
-  acc_lim_y: 2.5
+  acc_lim_x: 1.5
+  acc_lim_y: 1.5
   
   holonomic_robot: false
   
-  yaw_goal_tolerance: 1.0
-  xy_goal_tolerance: 0.1
+  yaw_goal_tolerance: 7.0
+  xy_goal_tolerance: 0.3

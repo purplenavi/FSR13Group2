@@ -161,6 +161,9 @@ CMAKE_VERBOSE_MAKEFILE:BOOL=FALSE
 //Single output directory for building all executables.
 EXECUTABLE_OUTPUT_PATH:PATH=
 
+//gtest-config executable
+GTEST_EXE:FILEPATH=GTEST_EXE-NOTFOUND
+
 //Single output directory for building all libraries.
 LIBRARY_OUTPUT_PATH:PATH=
 
@@ -184,6 +187,9 @@ TOOLCHAINCONFIG:FILEPATH=TOOLCHAINCONFIG-NOTFOUND
 
 //Path to a file.
 USERCONFIG:FILEPATH=USERCONFIG-NOTFOUND
+
+//Path to a file.
+_file_name:FILEPATH=/home/group2/fuerte_workspace/fsr2013/hiekkalaatikko/pioneer_set_tf/src/tf_broadcaster.cpp
 
 //Value Computed by CMake
 pioneer_set_tf_BINARY_DIR:STATIC=/home/group2/fuerte_workspace/fsr2013/hiekkalaatikko/pioneer_set_tf/build
@@ -324,4 +330,22 @@ CMAKE_VERBOSE_MAKEFILE-ADVANCED:INTERNAL=1
 FIND_PACKAGE_MESSAGE_DETAILS_PythonInterp:INTERNAL=[/usr/bin/python][v2.7.3()]
 //ADVANCED property for variable: PYTHON_EXECUTABLE
 PYTHON_EXECUTABLE-ADVANCED:INTERNAL=1
+_rosbuild_EXPORTS:INTERNAL=
+_rosbuild_cached_flag_time:INTERNAL=1382539682.04
+_roslang_LANGS:INTERNAL=roslisp;rospy;roscpp
+_rospack_deps_manifests_invoke_result:INTERNAL=/opt/ros/fuerte/share/roslang/manifest.xml;/opt/ros/fuerte/share/roscpp/manifest.xml;/opt/ros/fuerte/stacks/bullet/manifest.xml;/opt/ros/fuerte/share/geometry_msgs/manifest.xml;/opt/ros/fuerte/share/sensor_msgs/manifest.xml;/opt/ros/fuerte/share/rosconsole/manifest.xml;/opt/ros/fuerte/stacks/geometry/angles/manifest.xml;/opt/ros/fuerte/share/rospy/manifest.xml;/opt/ros/fuerte/share/rostest/manifest.xml;/opt/ros/fuerte/share/roswtf/manifest.xml;/opt/ros/fuerte/share/message_filters/manifest.xml;/opt/ros/fuerte/stacks/geometry/tf/manifest.xml
+_rospack_msgsrv_gen_invoke_result:INTERNAL=/opt/ros/fuerte/stacks/geometry/tf/msg_gen/generated;/opt/ros/fuerte/stacks/geometry/tf/srv_gen/generated
+pioneer_set_tf_CFLAGS_OTHER:INTERNAL=-DBT_USE_DOUBLE_PRECISION -DBT_EULER_DEFAULT_ZYX
+pioneer_set_tf_INCLUDEDIR:INTERNAL=
+pioneer_set_tf_INCLUDE_DIRS:INTERNAL=/opt/ros/fuerte/include;/opt/ros/fuerte/stacks/geometry/tf/include;/opt/ros/fuerte/stacks/geometry/tf/msg_gen/cpp/include;/opt/ros/fuerte/stacks/geometry/tf/srv_gen/cpp/include;/opt/ros/fuerte/stacks/bullet/include;/opt/ros/fuerte/stacks/geometry/angles/include
+pioneer_set_tf_LDFLAGS_OTHER:INTERNAL=-Wl,-rpath,/opt/ros/fuerte/stacks/geometry/tf/lib -Wl,-rpath,/opt/ros/fuerte/stacks/bullet/lib
+pioneer_set_tf_LIBRARIES:INTERNAL=tf;boost_thread-mt;BulletDynamics;BulletCollision;LinearMath;message_filters;roscpp;rostime;rosconsole;roscpp_serialization;xmlrpcpp
+pioneer_set_tf_LIBRARY_DIRS:INTERNAL=/opt/ros/fuerte/lib;/opt/ros/fuerte/stacks/geometry/tf/lib;/opt/ros/fuerte/stacks/bullet/lib
+pioneer_set_tf_cached_manifest_list:INTERNAL=/home/group2/fuerte_workspace/fsr2013/hiekkalaatikko/pioneer_set_tf/manifest.xml;/opt/ros/fuerte/share/roslang/manifest.xml;/opt/ros/fuerte/share/roscpp/manifest.xml;/opt/ros/fuerte/stacks/bullet/manifest.xml;/opt/ros/fuerte/share/geometry_msgs/manifest.xml;/opt/ros/fuerte/share/sensor_msgs/manifest.xml;/opt/ros/fuerte/share/rosconsole/manifest.xml;/opt/ros/fuerte/stacks/geometry/angles/manifest.xml;/opt/ros/fuerte/share/rospy/manifest.xml;/opt/ros/fuerte/share/rostest/manifest.xml;/opt/ros/fuerte/share/roswtf/manifest.xml;/opt/ros/fuerte/share/message_filters/manifest.xml;/opt/ros/fuerte/stacks/geometry/tf/manifest.xml;/opt/ros/fuerte/stacks/geometry/tf/msg_gen/generated;/opt/ros/fuerte/stacks/geometry/tf/srv_gen/generated
+pioneer_set_tf_temp:INTERNAL=-Wl,-rpath,/opt/ros/fuerte/stacks/geometry/tf/lib;-Wl,-rpath,/opt/ros/fuerte/stacks/bullet/lib
+roscpp_CMAKE:INTERNAL=/opt/ros/fuerte/share/roscpp/rosbuild/roscpp.cmake
+roslib_path:INTERNAL=/opt/ros/fuerte/share/roslib
+roslisp_CMAKE:INTERNAL=/opt/ros/fuerte/share/roslisp/rosbuild/roslisp.cmake
+rospy_CMAKE:INTERNAL=/opt/ros/fuerte/share/rospy/rosbuild/rospy.cmake
+rosunit_path:INTERNAL=/opt/ros/fuerte/share/rosunit
 

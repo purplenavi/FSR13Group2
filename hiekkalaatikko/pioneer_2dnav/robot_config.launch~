@@ -1,8 +1,8 @@
 <launch>
 
-  <include file="$(find AS_84_3144_launch)/launch/pioneer.launch" />
+  <!--<include file="$(find AS_84_3144_launch)/launch/pioneer.launch" />-->
 
-  <!-- <node pkg="robot_setup_tf" type="tf_broadcaster" name="tf_broadcaster" output="screen" /> -->
+  <!--<node pkg="pioneer_set_tf" type="tf_broadcaster" name="tf_broadcaster" output="screen" />-->
 
   <!-- publish the static transform from the center of the robot to the laser rangefinder (required for slam_gmapping) -->
 <!--
@@ -16,9 +16,9 @@
     quaternion. The period, in milliseconds, specifies how often to send a
     transform. 100ms (10hz) is a good value.-->
   
-  <node pkg="tf" type="static_transform_publisher" name="base_link_to_laser" args="-0.075 -0.015 0.54 0 0 0 base_link laser 100" />
+  <!--node pkg="tf" type="static_transform_publisher" name="base_link_to_laser" args="-0.075 -0.015 0.54 0 0 0 base_link laser 100" /-->
 
-  <node pkg="robotstopper" type="robotstopper" name="robotstopper" output="screen" />
+  <!--<node pkg="stopper" type="stopper" name="stopper" output="screen" />-->
 
 
 </launch>
