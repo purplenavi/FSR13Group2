@@ -43,12 +43,16 @@ class Widgetti(QWidget):
         self.map_layout.addWidget(self.debug_stream)
         self.layout.addLayout(self.map_layout)
         self.layout.addLayout(self.button_layout)
-        self.layout.addWidget(QLabel('Use mouse to draw path. Rclick adds last point'))
+        self.layout.addWidget(QLabel('Click path points with mouze. Last point with rclickz'))
         self.setLayout(self.layout)
 
     def update_textbox(self):
         self.debug_stream.insertPlainText('Robot point:')
         self.debug_stream.insertPlainText(str(self.robomap.robot_point))
+        
+    def update_textbox(self, header, txt):
+        self.debug_stream.insertPlainText(header)
+        self.debug_stream.insertPlainText(txt)
 
     def Engage(self):
         plan = self.robomap.get_plan()
@@ -60,18 +64,19 @@ class Widgetti(QWidget):
         path.header.frame_id = "map"
         path.header.stamp = rospy.Time.now()
         for z in plan:
-            stampedPose = PoseStamped()
+            stamp = PoseStamped()
             pos = z[0]
             x = pos[0]
             y = pos[1]
-            quat = z[1]
-            stampedPose.header.stamp = rospy.Time.now()
-            stampedPose.header.frame_id = "map"
-            stampedPose.pose.position.x = x
-            stampedPose.pose.position.y = y
-            stampedPose.pose.orientation.w = quat[3]
-            stampedPose.pose.orientation.z = quat[2]
-            path.poses.append(stampedPose)
+            quaternion = z[1]
+            stamp.header.stamp = rospy.Time.now()
+            stamp.header.frame_id = "map"
+            stamp.pose.position.x = x
+            stamp.pose.position.y = y
+            stamp.pose.orientation.w = quaternion[3]
+            stamp.pose.orientation.z = quaternion[2]
+            path.poses.append(stamp)
+            self.update_textbox('path coordinate_point:', (str(x) + ' ' + str(y)))
         self.gui_publisher.publish(path)
 
 class RoboMap(QGraphicsView):
