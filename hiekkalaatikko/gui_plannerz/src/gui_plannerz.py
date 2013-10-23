@@ -46,13 +46,9 @@ class Widgetti(QWidget):
         self.layout.addWidget(QLabel('Click path points with mouze. Last point with rclickz'))
         self.setLayout(self.layout)
 
-    def update_textbox(self):
-        self.debug_stream.insertPlainText('Robot point:')
-        self.debug_stream.insertPlainText(str(self.robomap.robot_point))
-        
     def update_textbox(self, header, txt):
-        self.debug_stream.insertPlainText(header)
-        self.debug_stream.insertPlainText(txt)
+        self.debug_stream.insertPlainText(header + '\n')
+        self.debug_stream.insertPlainText(txt+'\n')
 
     def Engage(self):
         plan = self.robomap.get_plan()
@@ -134,7 +130,7 @@ class RoboMap(QGraphicsView):
         self.mirror(self.robot_point)
         self.scene.addItem(self.robot_point)
         print 'Added robot to point ' + str(point.x()) + ' ' + str(point.y())
-        self.parent.update_textbox()
+        self.parent.update_textbox('Added robot to point', (str(point.x()) + ' ' + str(point.y())))
        
     def update_position_current(self):
         (t, r) = self.tf.lookupTransform('/map','base_link', rospy.Time(0))
