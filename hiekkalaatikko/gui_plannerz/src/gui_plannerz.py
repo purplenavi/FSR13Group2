@@ -240,6 +240,6 @@ if __name__ == "__main__":
     rospy.init_node("gui_plannerz")
     app = QApplication(sys.argv)
     q = Widgetti()
-    q.setMinimumSize(400, 500)
+    q.setMinimumSize(700, 800)
     q.show()
     app.exec_()
