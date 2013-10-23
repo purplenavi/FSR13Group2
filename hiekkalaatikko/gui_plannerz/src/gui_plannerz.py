@@ -144,10 +144,8 @@ class RoboMap(QGraphicsView):
         print 'Origin at:' + str(msg.info.origin.position.x) + ' ' + str(msg.info.origin.position.y)
         arr = numpy.array(msg.data, dtype=numpy.uint8, copy=False, order='C')
         arr = arr.reshape((self.h, self.w))
-        if self.w % 4:
-            tmp = numpy.empty((self.h, 4 - self.w % 4), dtype=arr.dtype, order='C')
-            arr = numpy.append(arr, tmp, axis=1)
         img = QImage(arr.reshape((arr.shape[0] * arr.shape[1])), self.w, self.h, QImage.Format_Indexed8)
+        #need to invert some colors :)
         for z in reversed(range(101)):
             img.setColor(100 - z, qRgb(z*2.55, z*2.55, z*2.55))
         img.setColor(101, qRgb(255, 0, 0))
