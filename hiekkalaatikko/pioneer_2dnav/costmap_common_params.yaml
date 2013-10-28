@@ -1,24 +1,28 @@
 obstacle_range: 2.5
 raytrace_range: 3.0
-#footprint: [[x0, y0], [x1, y1], ... [xn, yn]]
-#robot_radius: ir_of_robot
+inflation_radius: 0.35
 
-#inflation_radius: 0.35
+#---standard pioneer footprint---
 
-#inflation_radius: 0.30
+#---(in inches)---
+#footprint: [ [10, -2], [7, -2], [7, -7], [-7.5, -7], [-10, 0], [-7.5, 7], [7, 7], [7, 2], [10, 2] ]
 
+#---(in meters)---
+#footprint: [ [0.254, -0.0508], [0.1778, -0.0508], [0.1778, -0.1778], [-0.1905, -0.1778], [-0.254, 0], [-0.1905, 0.1778], [0.1778, 0.1778], [0.1778, 0.0508], [0.254, 0.0508] ]
 
-# footprint from the file costmap_common_params_p3dx.yaml (p2os_launch package)
-footprint: [ [0.1778, -0.0508], [0.1778, -0.1778], [-0.1905, -0.1778], [-0.254, 0], [-0.1905, 0.1778], [0.1778, 0.1778], [0.1778, 0.0508] ]
+#---pioneer AT footprint:---
+
+#---(in inches)---
+#footprint: [ [13, -2], [10, -2], [10, -10], [-10, -10], [-10, 10], [10, 10], [10, 2], [13, 2] ]
+
+#---(in meters)---
+footprint: [ [0.3302, -0.0508], [0.254, -0.0508], [0.254, -0.254], [-0.254, -0.254], [-0.254, 0.254], [0.254, 0.254], [0.254, 0.0508], [0.3302, 0.0508] ]
+
+transform_tolerance: 0.2
+map_type: costmap
 
 observation_sources: laser_scan_sensor
-# sonar is also publishing PointClouds which could be used here?
 
 laser_scan_sensor: {sensor_frame: laser, data_type: LaserScan, topic: scan, marking: true, clearing: true, expected_update_rate: 0.2}
 
-
-
-transform_tolerance: 0.4
-map_type: costmap
-
-
+#point_cloud_sensor: {sensor_frame: frame_name, data_type: PointCloud, topic: topic_name, marking: true, clearing: true}

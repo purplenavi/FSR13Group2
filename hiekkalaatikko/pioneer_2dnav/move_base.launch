@@ -19,8 +19,8 @@
       <!--param name="base_global_planner" value="$(find navqueue)/navqueue"/-->
 
       <!-- Costmap documentation: http://wiki.ros.org/costmap_2d -->
-      <rosparam file="$(find pioneer_2dnav)/costmap_common_params.yaml" command="load" ns="global_costmap" />
-      <rosparam file="$(find pioneer_2dnav)/costmap_common_params.yaml" command="load" ns="local_costmap" />
+      <rosparam file="$(find pioneer_2dnav)/costmap_common_params_p3dx.yaml" command="load" ns="global_costmap" />
+      <rosparam file="$(find pioneer_2dnav)/costmap_common_params_p3dx.yaml" command="load" ns="local_costmap" />
       <rosparam file="$(find pioneer_2dnav)/local_costmap_params.yaml" command="load" />
       <rosparam file="$(find pioneer_2dnav)/global_costmap_params.yaml" command="load" />
       <rosparam file="$(find pioneer_2dnav)/base_local_planner_params.yaml" command="load" />
