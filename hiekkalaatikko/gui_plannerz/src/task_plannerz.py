@@ -3,7 +3,7 @@ import roslib
 roslib.load_manifest('gui_plannerz')
 import rospy
 from nav_msgs.msg import OccupancyGrid, Path
-from std_msgs.msg import String
+from geometry_msgs.msg import Vector3
 import numpy
 from math import atan2
 import tf
@@ -12,7 +12,7 @@ import python_qt_binding
 from python_qt_binding.QtCore import Signal, Slot, QPointF, qWarning, Qt, QTimer
 from python_qt_binding.QtGui import QWidget, QMessageBox, QTextEdit, QLabel, QPixmap, QBrush, QImage, QGraphicsView, QGraphicsScene, QPainterPath, QPen, QPolygonF, QVBoxLayout, QHBoxLayout, QColor, qRgb, QPushButton, QRadioButton
 from geometry_msgs.msg import PoseStamped
-
+from time import * 
 
 
 class Widgetti(QWidget):
@@ -25,7 +25,7 @@ class Widgetti(QWidget):
         self.tf = tf.TransformListener()
 
         self.robomap = RoboMap(tf = self.tf, parent=self)
-		self.taskplanner = TaskPlanner(parent = self)
+        self.taskplanner = TaskPlanner(parent = self)
 
         self.setWindowTitle('Gui plannerz lol')
         self.drive = QPushButton('DRIVE!')
@@ -40,7 +40,14 @@ class Widgetti(QWidget):
      
         self.button_layout.addWidget(self.drive)
         self.button_layout.addWidget(self.delete_plan)
-        
+       
+        self.open_manip = QPushButton('Open manipulator')
+        self.open_manip.clicked.connect(self.taskplanner.openManipulator)
+        self.close_manip = QPushButton('Close manipulator')
+        self.close_manip.clicked.connect(self.taskplanner.closeManipulator)
+        self.button_layout.addWidget(self.open_manip)
+        self.button_layout.addWidget(self.close_manip)
+
         self.map_layout.addWidget(self.robomap)
         self.map_layout.addWidget(self.debug_stream)
         self.layout.addLayout(self.map_layout)
@@ -250,30 +257,34 @@ class RoboMap(QGraphicsView):
 # Assuming plan contains only figures
 class TaskPlanner():
 
-	def __init__(self, manip_topic = 'manipulator', parent = None):
-		self.parent = parent
-		self.manipulator = manip_topic
-		self.subscriber = rospy.Subscriber(self.manipulator, OccupancyGrid, self.manipulatorCb)
-		self.manipulator_action = rospy.Publisher(self.manipulator, String)
-		self.manipulator_state = rospy.Subscriber(self.manipulator, String)
+    def __init__(self, manip_topic = '/manip_servo_angles', parent = None):
+        self.parent = parent
+        self.manipulator = manip_topic
+        #self.subscriber = rospy.Subscriber(self.manipulator,upancyGrid, self.manipulatorCb)
+        self.manipulator_action = rospy.Publisher(self.manipulator, Vector3, latch=False)
+        #self.manipulator_state = rospy.Subscriber(self.manipulator, String)
+        #self.parent.update_textbox('Task Planner', 'Task planner initialized')
+        #print 'Task planner initialized'
 
-	def manipulatorCb(self, msg):
-		self.parent.update_textbox('Manipulator subscription',msg)
+    def manipulatorCb(self, msg):
+        self.parent.update_textbox('Manipulator subscription',msg)
 
-	def goHomeBase(self):
-		plan = self.parent.robomap.get_plan()
-		self.parent.robomap.deletePlan() # Maybe not like this
-		self.parent.robomap.draw_point(0,0,add_point=True)
-		
-	def closeManipulator(self):
-		self.manipulator_action = rospy.Publisher(self.manipulator, 'close')
-		self.parent.update_textbox('Manipulator action','closing')
-		time.sleep(10) # just for testing before manipulator state publisher
+    def goHomeBase(self):
+        plan = self.parent.robomap.get_plan()
+        self.parent.robomap.deletePlan() # Maybe not like this
+        self.parent.robomap.draw_point(0,0,add_point=True)
+	
+    def closeManipulator(self):
+        msg = Vector3(x=0.0, y=90.0, z=90.0)
+        self.manipulator_action.publish(msg)
+        self.parent.update_textbox('Manipulator action','closing')
+        #time.sleep(10) # just for testing before manipulator state publisher
 
-	def openManipulator(self):
-		self.manipulator_action = rospy.Publisher(self.manipulator, 'open')
-		self.parent.update_textbox('Manipulator action','opening')
-		time.sleep(10) # just for testing before manipulator state publisher
+    def openManipulator(self):
+        msg = Vector3(x=180.0, y=90.0, z=90.0)
+        self.manipulator_action.publish(msg)
+        self.parent.update_textbox('Manipulator action','opening')
+        #time.sleep(10) # just for testing before manipulator state publisher
 
 if __name__ == "__main__":
     from python_qt_binding.QtGui import QApplication
