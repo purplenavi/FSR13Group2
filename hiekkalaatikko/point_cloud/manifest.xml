@@ -1,0 +1,19 @@
+<package>
+  <description brief="point_cloud">
+
+     point_cloud
+
+  </description>
+  <author>Miikka Eloranta</author>
+  <license>BSD</license>
+  <review status="unreviewed" notes=""/>
+  <url>http://ros.org/wiki/point_cloud</url>
+  <depend package="pcl"/>
+  <depend package="pcl_ros"/>
+  <depend package="rospy"/>
+  <depend package="roscpp"/>
+  <depend package="sensor_msgs"/>
+
+</package>
+
+

@@ -3,7 +3,6 @@ import roslib
 roslib.load_manifest('gui_plannerz')
 import rospy
 from nav_msgs.msg import OccupancyGrid, Path
-from geometry_msgs.msg import Vector3
 import numpy
 from math import atan2
 import tf
@@ -11,9 +10,7 @@ from tf.transformations import quaternion_from_euler
 import python_qt_binding
 from python_qt_binding.QtCore import Signal, Slot, QPointF, qWarning, Qt, QTimer
 from python_qt_binding.QtGui import QWidget, QMessageBox, QTextEdit, QLabel, QPixmap, QBrush, QImage, QGraphicsView, QGraphicsScene, QPainterPath, QPen, QPolygonF, QVBoxLayout, QHBoxLayout, QColor, qRgb, QPushButton, QRadioButton
-from geometry_msgs.msg import PoseStamped
-from time import * 
-
+from geometry_msgs.msg import PoseStamped, Vector3
 
 class Widgetti(QWidget):
 
@@ -40,13 +37,17 @@ class Widgetti(QWidget):
      
         self.button_layout.addWidget(self.drive)
         self.button_layout.addWidget(self.delete_plan)
-       
+
+        # task planner stuff
         self.open_manip = QPushButton('Open manipulator')
         self.open_manip.clicked.connect(self.taskplanner.openManipulator)
         self.close_manip = QPushButton('Close manipulator')
         self.close_manip.clicked.connect(self.taskplanner.closeManipulator)
+        self.taskplanning = QPushButton('Collect figures')
+        self.taskplanning.clicked.connect(self.taskplanner.execute)
         self.button_layout.addWidget(self.open_manip)
         self.button_layout.addWidget(self.close_manip)
+        self.button_layout.addWidget(self.taskplanning)
 
         self.map_layout.addWidget(self.robomap)
         self.map_layout.addWidget(self.debug_stream)
@@ -254,10 +255,12 @@ class RoboMap(QGraphicsView):
             self.polygon.setZValue(1000.0)
             self.draw_point(point.x(), point.y(), Qt.yellow, add_point=True)
 
-# Assuming plan contains only figures
 class TaskPlanner():
 
+    #STATES = Enum('RANDOM','REACHING','PICKING','RETURNING','RELEASING')
+
     def __init__(self, manip_topic = '/manip_servo_angles', parent = None):
+        self.state = None
         self.parent = parent
         self.manipulator = manip_topic
         #self.subscriber = rospy.Subscriber(self.manipulator,upancyGrid, self.manipulatorCb)
@@ -265,6 +268,7 @@ class TaskPlanner():
         #self.manipulator_state = rospy.Subscriber(self.manipulator, String)
         #self.parent.update_textbox('Task Planner', 'Task planner initialized')
         #print 'Task planner initialized'
+
 
     def manipulatorCb(self, msg):
         self.parent.update_textbox('Manipulator subscription',msg)
@@ -275,16 +279,22 @@ class TaskPlanner():
         self.parent.robomap.draw_point(0,0,add_point=True)
 	
     def closeManipulator(self):
-        msg = Vector3(x=0.0, y=90.0, z=90.0)
+        msg = Vector3(x=0.0)
         self.manipulator_action.publish(msg)
         self.parent.update_textbox('Manipulator action','closing')
         #time.sleep(10) # just for testing before manipulator state publisher
 
     def openManipulator(self):
-        msg = Vector3(x=180.0, y=90.0, z=90.0)
+        msg = Vector3(x=180.0)
         self.manipulator_action.publish(msg)
         self.parent.update_textbox('Manipulator action','opening')
         #time.sleep(10) # just for testing before manipulator state publisher
+
+    def taskplanning(self):
+        # Starting from beginning
+        self.parent.robomap.deletePlan()
+        self.state = STATES.RANDOM
+
 
 if __name__ == "__main__":
     from python_qt_binding.QtGui import QApplication
