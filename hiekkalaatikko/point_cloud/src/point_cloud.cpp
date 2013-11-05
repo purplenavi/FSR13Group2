@@ -1,10 +1,10 @@
 #include <ros/ros.h>
 #include <sensor_msgs/PointCloud2.h>
-// PCL specific includes
-#include <pcl/ros/conversions.h>
-#include <pcl/point_cloud.h>
-#include <pcl/point_types.h>
-#include <pcl/filters/voxel_grid.h>
+// PCL 1.7 specific includes
+#include <pcl17/ros/conversions.h>
+#include <pcl17/point_cloud.h>
+#include <pcl17/point_types.h>
+#include <pcl17/filters/voxel_grid.h>
 
 ros::Publisher pub;
 
