@@ -33,7 +33,6 @@ class Widgetti(QWidget):
         self.delete_plan = QPushButton('Delete planz')
         self.delete_plan.clicked.connect(self.robomap.deletePlan)
         self.debug_stream = QTextEdit(self)
-        self.debug_stream.insertPlainText('TESTING')
      
         self.button_layout.addWidget(self.drive)
         self.button_layout.addWidget(self.delete_plan)
@@ -43,11 +42,19 @@ class Widgetti(QWidget):
         self.open_manip.clicked.connect(self.taskplanner.openManipulator)
         self.close_manip = QPushButton('Close manipulator')
         self.close_manip.clicked.connect(self.taskplanner.closeManipulator)
+
         self.taskplanning = QPushButton('Collect figures')
         self.taskplanning.clicked.connect(self.taskplanner.execute)
         self.button_layout.addWidget(self.open_manip)
         self.button_layout.addWidget(self.close_manip)
         self.button_layout.addWidget(self.taskplanning)
+
+        self.stop_robot = QPushButton('STOP!')
+        self.stop_robot.clicked.connect(self.robomap.stop_robot)
+        self.button_layout.addWidget(self.open_manip)
+        self.button_layout.addWidget(self.close_manip)
+        self.button_layout.addWidget(self.stop_robot)
+
 
         self.map_layout.addWidget(self.robomap)
         self.map_layout.addWidget(self.debug_stream)
@@ -88,7 +95,6 @@ class Widgetti(QWidget):
 class RoboMap(QGraphicsView):
 
     map_change = Signal()
-    position_change = Signal(float, float)
    
     def __init__(self, topic='/map', tf=None, parent=None):
 
@@ -111,8 +117,6 @@ class RoboMap(QGraphicsView):
         self.subscriber = rospy.Subscriber(topic, OccupancyGrid, self.callback)
         self.setScene(self.scene)
         self.timer = None
-        self.robot_point = None
-        self.position_change.connect(self.update_position)
        
     def update(self):
         if self.mapitem:
@@ -125,28 +129,36 @@ class RoboMap(QGraphicsView):
             self.timer.timeout.connect(self.update_position_current)
             self.timer.start(1000)
         self.show()
-       
+
+    def stop_robot(self):
+        plan = self.get_plan()
+        print 'Got plan'
+        if plan:
+            print 'Plan exists'
+            path = Path()
+            path.header.frame_id = "map"
+            path.header.stamp = rospy.Time.now()
+            for z in plan:
+                stamp = PoseStamped()
+                pos = z[0]
+                x = pos[0]
+                y = pos[1]
+                quaternion = z[1]
+                stamp.header.stamp = rospy.Time.now()
+                stamp.header.frame_id = "map"
+                stamp.pose.position.x = x
+                stamp.pose.position.y = y
+                stamp.pose.orientation.w = quaternion[3]
+                stamp.pose.orientation.z = quaternion[2]
+                path.poses.append(stamp)
+                break
+            self.parent.gui_publisher.publish(path)
+            self.deletePlan()
        
     def mirror(self, item):
         item.scale(-1, 1)
         item.translate(-self.w, 0)
-   
-    def update_position(self, x, y):
-        point = QPointF(x, y)
-        if self.robot_point:
-            print 'Old point: ' + str(self.robot_point)
-            self.scene.removeItem(self.robot_point)
-        self.robot_point = self.draw_point(point.x(), point.y(), color=Qt.green, rad=2.0)
-        self.mirror(self.robot_point)
-        self.scene.removeItem(self.robot_point)
-        self.scene.addItem(self.robot_point)
-        print 'Added robot to point ' + str(point.x()) + ' ' + str(point.y())
        
-    def update_position_current(self):
-        (t, r) = self.tf.lookupTransform('/map','base_link', rospy.Time(0))
-        print 'calling update position...'
-        self.position_change.emit(t[0], t[1])
-   
     def callback(self, msg):
         self.w = msg.info.width
         self.h = msg.info.height
@@ -289,6 +301,7 @@ class TaskPlanner():
         self.manipulator_action.publish(msg)
         self.parent.update_textbox('Manipulator action','opening')
         #time.sleep(10) # just for testing before manipulator state publisher
+        
 
     def taskplanning(self):
         # Starting from beginning
