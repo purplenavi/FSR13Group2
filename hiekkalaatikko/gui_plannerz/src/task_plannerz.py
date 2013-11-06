@@ -44,7 +44,7 @@ class Widgetti(QWidget):
         self.close_manip.clicked.connect(self.taskplanner.closeManipulator)
 
         self.taskplanning = QPushButton('Collect figures')
-        self.taskplanning.clicked.connect(self.taskplanner.execute)
+        #self.taskplanning.clicked.connect(self.taskplanner.execute)
         self.button_layout.addWidget(self.open_manip)
         self.button_layout.addWidget(self.close_manip)
         self.button_layout.addWidget(self.taskplanning)
