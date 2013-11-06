@@ -1,0 +1,18 @@
+<package>
+  <description brief="pirate_detector">
+
+     pirate_detector
+
+  </description>
+  <author>group2</author>
+  <license>BSD</license>
+  <review status="unreviewed" notes=""/>
+  <url>http://ros.org/wiki/pirate_detector</url>
+  <depend package="rospy"/>
+  <depend package="sensor_msgs"/>
+  <depend package="opencv2"/>
+  <depend package="cv_bridge"/>
+
+</package>
+
+
