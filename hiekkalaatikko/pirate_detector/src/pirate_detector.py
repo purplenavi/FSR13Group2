@@ -11,8 +11,9 @@ import rospy
 import numpy as np
 import math
 #import tf
-from sensor_msgs.msg import Image
+from sensor_msgs.msg import Image, PointCloud2
 from cv_bridge import CvBridge, CvBridgeError
+from geometry_msgs.msg import Vector3
 
 #Code samples fetched from http://www.pirobot.org/blog/0016/
 # Draw contour from list of tuples.
@@ -46,9 +47,14 @@ def find_centre_of_mass( contour ) :
   if sM00 == 0:
     sM00 = 1
   return ( sM10 / sM00 , sM01 / sM00 )
+  
+def get_center_coordinates(x, y, w, h):
+    center_x = x + w/2
+    center_y = y + h/2
+    return (center_x, center_y)
 
 THETA = np.pi / 3.0
-COLOR = cv.CV_RGB( 255 , 0 , 0 )
+COLOR = cv.CV_RGB( 255 , 255 , 255 )
 
 class pirate_detector:
    
@@ -56,6 +62,7 @@ class pirate_detector:
 
         rospy.init_node('pirate_detector')
         print "Init"
+        self.pirates = []
         #Give the opencv display window a name
         self.cv_window_name = 'OpenCVImage'
         self.rgb_window_name = 'RGBimage'
@@ -67,9 +74,15 @@ class pirate_detector:
         #subscribe to image data
         self.image_subscribe = rospy.Subscriber('/camera/rgb/image_mono', Image, self.image_callback)
         self.rgb_subscribe = rospy.Subscriber('/camera/rgb/image_color', Image, self.rgb_callback)
-        self.rgb_image = None
-        self.cv_image = None
-        self.combined = None
+        self.point_cloud_subscribe = rospy.Subscriber('/camera/depth_registered/points', PointCloud2, self.point_cloud_callback)
+        self.camera_publisher = rospy.Publisher('/ptu_servo_angles', Vector3, latch=False)
+        rospy.sleep(1.0)
+        self.camera_publisher.publish(Vector3(x=0.0, y=110.0, z=90.0))
+        
+    def point_cloud_callback(self, data):
+        if self.pirates:
+            pirate = self.pirates.pop()
+            print data(pirate)
         
     def image_callback(self, data):
         print "Callback"
@@ -90,29 +103,34 @@ class pirate_detector:
         cv.Split(yuv, gray, None, None, None)
         canny = cv.CreateImage(cv.GetSize(cv_image),8, 1)
         cv.Canny(cv_image,canny,50,250)
+        bwimage = cv.CreateImage(cv.GetSize(canny), 8, 1)
+        cv.Threshold(canny, bwimage, 128, 255, cv.CV_THRESH_BINARY)
+        
+        a = np.asarray(canny[:,:])
+        cv.FloodFill(canny, (0, 0), 0)
         storage = cv.CreateMemStorage()
-        contour_pointer = cv.FindContours(canny, storage)
+        contour_pointer = cv.FindContours(canny, storage, method=cv.CV_CHAIN_APPROX_TC89_KCOS,mode=cv.CV_RETR_EXTERNAL)
         contour_areas = []
         while contour_pointer is not None:
             contour = contour_pointer[ : ]
-            if cv.ContourArea(contour) < 50.0:
-                pass
-            else:
-                centre_of_mass = find_centre_of_mass(contour)
-                rotated_contour = rotate_contour(contour, centre_of_mass, 0)
-                lst = []
-                for i in rotated_contour:
-                    lst.append(list(i))
-                rotated_contour = []
-                for i in lst:
-                    i[0] = int(i[0])
-                    i[1] = int(i[1])
-                    rotated_contour.append(tuple(i))
-                draw_contour(cv_image, rotated_contour, COLOR, -1)
+            centre_of_mass = find_centre_of_mass(contour)
+            rotated_contour = rotate_contour(contour, centre_of_mass, 0)
+            lst = []
+            for i in rotated_contour:
+                lst.append(list(i))
+            rotated_contour = []
+            for i in lst:
+                i[0] = int(i[0])
+                i[1] = int(i[1])
+                rotated_contour.append(tuple(i))
+            draw_contour(cv_image, rotated_contour, COLOR, 5)
+            x, y, w, h = cv.BoundingRect(contour)
+            if h > w and h > 40:
+                self.pirates.append((get_center_coordinates(x, y, h, w)))
+                cv.Rectangle(cv_image, (x, y), (x+w, y+h), (0, 255, 0), cv.CV_FILLED)
             contour_pointer = contour_pointer.h_next()
-
         cv.ShowImage(self.cv_window_name, cv_image)
-        cv.WaitKey(0)
+        cv.WaitKey(3000)
 
     def rgb_callback(self, data):
         print "RGB Callback"
