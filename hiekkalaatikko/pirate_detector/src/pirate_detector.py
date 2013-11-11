@@ -76,7 +76,7 @@ class pirate_detector:
         #create the cv_bridge object
         self.bridge = CvBridge()
         #subscribe to image data
-        self.publisher = rospy.Publisher('cmd_vel', Twist)
+        self.publisher = rospy.Publisher('RosAria/cmd_vel', Twist)
         self.image_subscribe = rospy.Subscriber('/camera/rgb/image_mono', Image, self.image_callback)
         #self.rgb_subscribe = rospy.Subscriber('/camera/rgb/image_color', Image, self.rgb_callback)
         self.point_cloud_subscribe = rospy.Subscriber('/camera/depth/image', Image, self.point_cloud_callback)
@@ -98,7 +98,7 @@ class pirate_detector:
                     cv_image = self.bridge.imgmsg_to_cv(data)
                 except CvBridgeError, e:
                     print e
-                if pirate[1] > 280 and pirate[1] < 360:
+                if pirate[1] > 240 and pirate[1] < 400:
                     print 'PIRATE AT:'
                     print pirate
                     print 'RANGE:'
@@ -109,7 +109,7 @@ class pirate_detector:
             if pirate_locationz:
                 twist = Twist()
                 twist.linear.x = 0.1
-                for i in range(int(10*(pirate_locationz-0.15))):
+                for i in range(int(10*(pirate_locationz))):
                     self.publisher.publish(twist)
                     rospy.sleep(0.1)
                 twist = Twist()
