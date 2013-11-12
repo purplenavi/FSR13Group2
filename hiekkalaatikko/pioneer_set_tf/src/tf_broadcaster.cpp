@@ -1,38 +1,56 @@
 #include <ros/ros.h>
 #include <tf/transform_broadcaster.h>
+#include <geometry_msgs/Vector3.h>
 
-static const char NODE[] = "tf_broadcaster";
-//Theres no rotation
-static const tf::Quaternion ROTATION(0, 0, 0, 1);
-//10cm forward 20cm up
-static const tf::Vector3 TRANSLATION(0.1, 0.0, 0.2);
+static const char NODE[] = "tf_camera_broadcaster";
 
+static const double height1 = 0.07; //from last join to cam
+static const double height2 = 0.4; //height to cam center
+static const tf::Vector3 trFromTiltJointToCam(0, 0, height1);
+static const tf::Vector3 trFromBaseToTilt(0.13, 0, height2 -height1);
+static const tf::Transform tf1(tf::Quaternion(0,0,0,1), tfFromTiltJointToCam);
+static tf::Transform tf2(tf::Quaternion(0,0,0,1), tfFromBaseToTilt);
+//Total tf is from base to tilt x tilt to cam
+static tf::Transform TF = tf1*tf2;
+
+double getRadian(double degree)
+{
+    return (degree * 3,14)/180.0;
+}
+
+void Callback(const geometry_msgs::Vector3::ConstPtr& msg)
+{
+    double pan = getRadian(msg->z-90.0);
+    double tilt = getRadian(msg->y-90.0);
+    tf2.setRotation(tf::createQuaternionFromRPY(0,tilt,pan));
+    tmp = tf1*tf2;
+    publish(tmp, "base_link", "camera_link");
+    
+}
+
+void publish(const tf::Transform &tf, const char *parent, const char *frame)
+{
+    static tf::TransformBroadcaster caster;
+    caster.sendTransform(
+        tf::StampedTransform(
+            tf,
+            ros::Time::now(),
+            parent,
+            frame));
+}
 
 int main(int argc, char** argv)
 {
     ros::init(argc, argv, NODE);
     ros::NodeHandle n;
-
-    //100 Hz rate
     ros::Rate r(100);
-    tf::TransformBroadcaster broadcaster;
+    ros::Subscriber sub = n.subscribe("ptu_servo_states", 1000, Callback);
 
     while (n.ok())
     {
-        broadcaster.sendTransform(
-            tf::StampedTransform(
-                tf::Transform(ROTATION, TRANSLATION),
-                ros::Time::now(),
-                "base_link",
-                "sonar_frame"));
-
-        broadcaster.sendTransform(
-            tf::StampedTransform(
-                tf::Transform(ROTATION, TRANSLATION),
-                ros::Time::now(),
-                "base_link",
-                "laser"));
-
+        ros::spinOnce();
+        publish(TF, "base_link", "camera_link");
         r.sleep();
+        
     }
 }
