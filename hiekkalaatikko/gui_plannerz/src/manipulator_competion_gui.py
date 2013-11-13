@@ -342,10 +342,6 @@ class TaskPlanner():
         # Closing
         rospy.sleep(0.5)
         self.reverse()
-        # Turn around
-        # ?????
-        # Backing off
-        rospy.sleep(0.5)
         # Go home
         self.goHomeBase()
 
@@ -354,17 +350,20 @@ class TaskPlanner():
         # Opening
         rospy.sleep(0.5)
         self.reverse()
-        # Backing off
-        rospy.sleep(0.5)
-        # Turn around
-        # ?????
-        
 
     def reverse(self,distance=0.2):
+        r = rospy.Rate(1.0) # 1 Hz
         movement = Twist()
-        movement.linear.x = -0.15
-        self.driver.publish(movement)
-        rospy.sleep(-1.0*distance/movement.linear.x)
+        movement.linear.x = -0.15 # speed
+        time = (-1.0*distance/movement.linear.x)
+        for i in range(int(time)): # ~ distance
+            self.driver.publish(movement)
+            r.sleep()
+        movement = Twist()
+        movement.angular.z = 1.57/2 # ~45 deg/s
+        for i in range(4)
+            self.driver.publish(movement)
+            r.sleep()
         self.driver.publish(Twist())
 
 class pirate_detector:
