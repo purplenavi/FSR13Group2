@@ -29,8 +29,6 @@ class Widgetti(QWidget):
         self.map_layout = QHBoxLayout()
         self.tf = tf.TransformListener()
 
-        
-
         self.setWindowTitle('Awesome planner EPIC WIN')
         self.drive = QPushButton('DRIVE!')
         self.drive.clicked.connect(self.Engage)
@@ -289,24 +287,34 @@ class TaskPlanner():
         self.manipulator = manip_topic
         #self.subscriber = rospy.Subscriber(self.manipulator,upancyGrid, self.manipulatorCb)
         self.manipulator_action = rospy.Publisher(self.manipulator, Vector3, latch=False)
-        self.pirate_detector = rospy.Subscriber(detector_topic, String, self.detectorCb)
+        #self.pirate_detector = rospy.Subscriber(detector_topic, String, self.detectorCb)
         self.driver = rospy.Publisher(driver_topic, Twist, latch=False)
         #self.manipulator_state = rospy.Subscriber(self.manipulator, String)
         #self.parent.update_textbox('Task Planner', 'Task planner initialized')
         #print 'Task planner initialized'
         rospy.sleep(1.0)
-        self.openManipulator() # To ensure it's all the way opened
+        # Hope the origin's already set
+        self.origin = self.parent.robomap.origin
+        # To ensure manipulator's all the way opened
+        self.openManipulator()
 
 
     def manipulatorCb(self, msg):
         self.parent.update_textbox('Manipulator subscription',msg)
 
+    def goToLocation(self,x,y):
+        location = PoseStamped()
+        quaternion = quaternion_from_euler(0, 0, atan2(y-self.parent.robomap.origin[1], x-self.parent.robomap.origin[0]))
+        location.header.frame_id = 'map'
+        location.header.stamp = rospy.Time.now()
+        location.position.x = x
+        location.position.y = y
+		location.orientation.w = quaternion[3]
+		location.orientation.z = quaternion[2]
+		self.parent.goal_publisher.publish(location)
+
     def goHomeBase(self):
-        # How to really do this? Should we use ActionLib?
-        plan = self.parent.robomap.get_plan()
-        # Maybe not like this
-        self.parent.robomap.deletePlan()
-        self.parent.robomap.draw_point(0,0,add_point=True)
+        self.goToLocation(0,0)
     
     def closeManipulator(self):
         self.manipulator_action.publish(Vector3(x=0.0))
@@ -317,11 +325,6 @@ class TaskPlanner():
         self.manipulator_action.publish(Vector3(x=180.0))
         self.parent.update_textbox('Manipulator action','opening')
         #time.sleep(10) # just for testing before manipulator state publisher
-        
-    def taskplanning(self):
-        # Starting from beginning
-        self.parent.robomap.deletePlan()
-        self.state = STATES.RANDOM
 
     # Some possible messages, should be other than string?
     def detectorCb(self, data):
@@ -334,16 +337,36 @@ class TaskPlanner():
             self.closeManipulator()
             self.goHomeBase()    
 
+    def grabFigure(self):
+        self.closeManipulator()
+        # Closing
+        rospy.sleep(0.5)
+        self.reverse()
+        # Turn around
+        # ?????
+        # Backing off
+        rospy.sleep(0.5)
+        # Go home
+        self.goHomeBase()
+
     def dropFigure(self):
         self.openManipulator()
         # Opening
-        rospy.sleep(0.5) 
+        rospy.sleep(0.5)
+        self.reverse()
+        # Backing off
+        rospy.sleep(0.5)
+        # Turn around
+        # ?????
+        
+
+    def reverse(self,distance=0.2):
         movement = Twist()
         movement.linear.x = -0.15
         self.driver.publish(movement)
-        rospy.sleep(0.15)
+        rospy.sleep(-1.0*distance/movement.linear.x)
         self.driver.publish(Twist())
-		
+
 class pirate_detector:
 	
 	THETA = np.pi / 3.0
@@ -380,10 +403,10 @@ class pirate_detector:
         pirate = self.pirates.pop()
         #Create a P2P message to reach the figure
         camerapoint = PoseStamped()
-		x = xyzArr[pirate[0]][pirate[1]][0]+0.135 + self.origin[0]
-		y = xyzArr[pirate[0]][pirate[1]][1] + self.origin[1]
+		x = xyzArr[pirate[0]][pirate[1]][0]+0.135 + self.parent.robomap.origin[0]
+		y = xyzArr[pirate[0]][pirate[1]][1] + self.parent.robomap.origin[1]
 		z = xyzArr[pirate[0]][pirate[1]][2]-0.31 #Hihavakioita, koska fuck yeah :P
-		quaternion = quaternion_from_euler(0, 0, atan2(y-0, x-0))
+		quaternion = quaternion_from_euler(0, 0, atan2(y-self.parent.robomap.origin[1], x-self.parent.robomap.origin[0]))
         camerapoint.header.frame_id = 'map'
         camerapoint.header.stamp = rospy.Time.now()
         camerapoint.position.x = x
