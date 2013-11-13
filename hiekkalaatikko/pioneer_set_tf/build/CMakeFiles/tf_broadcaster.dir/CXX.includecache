@@ -11,6 +11,8 @@ ros/ros.h
 -
 tf/transform_broadcaster.h
 -
+geometry_msgs/Vector3.h
+-
 
 /opt/ros/fuerte/include/XmlRpcDecl.h
 ros/macros.h

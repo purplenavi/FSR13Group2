@@ -10,7 +10,8 @@ from tf.transformations import quaternion_from_euler
 import python_qt_binding
 from python_qt_binding.QtCore import Signal, Slot, QPointF, qWarning, Qt, QTimer
 from python_qt_binding.QtGui import QWidget, QMessageBox, QTextEdit, QLabel, QPixmap, QBrush, QImage, QGraphicsView, QGraphicsScene, QPainterPath, QPen, QPolygonF, QVBoxLayout, QHBoxLayout, QColor, qRgb, QPushButton, QRadioButton
-from geometry_msgs.msg import PoseStamped, Vector3
+from geometry_msgs.msg import PoseStamped, Vector3, Twist
+from std_msgs.msg import String
 
 class Widgetti(QWidget):
 
@@ -21,8 +22,7 @@ class Widgetti(QWidget):
         self.map_layout = QHBoxLayout()
         self.tf = tf.TransformListener()
 
-        self.robomap = RoboMap(tf = self.tf, parent=self)
-        self.taskplanner = TaskPlanner(parent = self)
+        
 
         self.setWindowTitle('Gui plannerz lol')
         self.drive = QPushButton('DRIVE!')
@@ -30,10 +30,13 @@ class Widgetti(QWidget):
 
         self.gui_publisher = rospy.Publisher('gui_plan', Path)
      
+
+        self.debug_stream = QTextEdit(self)
+        
+        self.robomap = RoboMap(tf = self.tf, parent=self)
+        self.taskplanner = TaskPlanner(parent = self)
         self.delete_plan = QPushButton('Delete planz')
         self.delete_plan.clicked.connect(self.robomap.deletePlan)
-        self.debug_stream = QTextEdit(self)
-     
         self.button_layout.addWidget(self.drive)
         self.button_layout.addWidget(self.delete_plan)
 
@@ -44,7 +47,7 @@ class Widgetti(QWidget):
         self.close_manip.clicked.connect(self.taskplanner.closeManipulator)
 
         self.taskplanning = QPushButton('Collect figures')
-        self.taskplanning.clicked.connect(self.taskplanner.execute)
+        #self.taskplanning.clicked.connect(self.taskplanner.execute)
         self.button_layout.addWidget(self.open_manip)
         self.button_layout.addWidget(self.close_manip)
         self.button_layout.addWidget(self.taskplanning)
@@ -271,43 +274,66 @@ class TaskPlanner():
 
     #STATES = Enum('RANDOM','REACHING','PICKING','RETURNING','RELEASING')
 
-    def __init__(self, manip_topic = '/manip_servo_angles', parent = None):
+    def __init__(self, manip_topic = '/manip_servo_angles', driver_topic = 'RosAria/cmd_vel', detector_topic = '/pirate_detector', parent = None):
         self.state = None
         self.parent = parent
         self.manipulator = manip_topic
         #self.subscriber = rospy.Subscriber(self.manipulator,upancyGrid, self.manipulatorCb)
         self.manipulator_action = rospy.Publisher(self.manipulator, Vector3, latch=False)
+        self.pirate_detector = rospy.Subscriber(detector_topic, String, self.detectorCb)
+        self.driver = rospy.Publisher(driver_topic, Twist, latch=False)
         #self.manipulator_state = rospy.Subscriber(self.manipulator, String)
         #self.parent.update_textbox('Task Planner', 'Task planner initialized')
         #print 'Task planner initialized'
+        rospy.sleep(1.0)
+        self.openManipulator() # To ensure it's all the way opened
 
 
     def manipulatorCb(self, msg):
         self.parent.update_textbox('Manipulator subscription',msg)
 
     def goHomeBase(self):
+        # How to really do this? Should we use ActionLib?
         plan = self.parent.robomap.get_plan()
-        self.parent.robomap.deletePlan() # Maybe not like this
+        # Maybe not like this
+        self.parent.robomap.deletePlan()
         self.parent.robomap.draw_point(0,0,add_point=True)
-	
+    
     def closeManipulator(self):
-        msg = Vector3(x=0.0)
-        self.manipulator_action.publish(msg)
+        self.manipulator_action.publish(Vector3(x=0.0))
         self.parent.update_textbox('Manipulator action','closing')
         #time.sleep(10) # just for testing before manipulator state publisher
 
     def openManipulator(self):
-        msg = Vector3(x=180.0)
-        self.manipulator_action.publish(msg)
+        self.manipulator_action.publish(Vector3(x=180.0))
         self.parent.update_textbox('Manipulator action','opening')
         #time.sleep(10) # just for testing before manipulator state publisher
         
-
     def taskplanning(self):
         # Starting from beginning
         self.parent.robomap.deletePlan()
         self.state = STATES.RANDOM
 
+    # Some possible messages, should be other than string?
+    def detectorCb(self, data):
+        if data == 'init':
+            self.parent.update_textbox('Pirate detector', 'initialized')
+        elif data == 'found':
+            self.parent.update_textbox('Pirate detector', 'going for figure')
+        elif data == 'inplace':
+            self.parent.update_textbox('Pirate detector', 'got to figure')
+            self.closeManipulator()
+            self.goHomeBase()    
+
+    def dropFigure(self):
+        self.openManipulator()
+        # Opening
+        rospy.sleep(0.5) 
+        movement = Twist()
+        movement.linear.x = -0.15
+        self.driver.publish(movement)
+        rospy.sleep(0.15)
+        self.driver.publish(Twist())
 
 if __name__ == "__main__":
     from python_qt_binding.QtGui import QApplication

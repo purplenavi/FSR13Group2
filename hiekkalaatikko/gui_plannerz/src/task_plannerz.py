@@ -12,6 +12,7 @@ from python_qt_binding.QtCore import Signal, Slot, QPointF, qWarning, Qt, QTimer
 from python_qt_binding.QtGui import QWidget, QMessageBox, QTextEdit, QLabel, QPixmap, QBrush, QImage, QGraphicsView, QGraphicsScene, QPainterPath, QPen, QPolygonF, QVBoxLayout, QHBoxLayout, QColor, qRgb, QPushButton, QRadioButton
 from geometry_msgs.msg import PoseStamped, Vector3, Twist
 from std_msgs.msg import String
+import pcl
 
 class Widgetti(QWidget):
 
@@ -22,8 +23,7 @@ class Widgetti(QWidget):
         self.map_layout = QHBoxLayout()
         self.tf = tf.TransformListener()
 
-        self.robomap = RoboMap(tf = self.tf, parent=self)
-        self.taskplanner = TaskPlanner(parent = self)
+        
 
         self.setWindowTitle('Gui plannerz lol')
         self.drive = QPushButton('DRIVE!')
@@ -31,10 +31,13 @@ class Widgetti(QWidget):
 
         self.gui_publisher = rospy.Publisher('gui_plan', Path)
      
+
+        self.debug_stream = QTextEdit(self)
+        
+        self.robomap = RoboMap(tf = self.tf, parent=self)
+        self.taskplanner = TaskPlanner(parent = self)
         self.delete_plan = QPushButton('Delete planz')
         self.delete_plan.clicked.connect(self.robomap.deletePlan)
-        self.debug_stream = QTextEdit(self)
-     
         self.button_layout.addWidget(self.drive)
         self.button_layout.addWidget(self.delete_plan)
 
@@ -293,7 +296,8 @@ class TaskPlanner():
     def goHomeBase(self):
         # How to really do this? Should we use ActionLib?
         plan = self.parent.robomap.get_plan()
-        self.parent.robomap.deletePlan() # Maybe not like this
+        # Maybe not like this
+        self.parent.robomap.deletePlan()
         self.parent.robomap.draw_point(0,0,add_point=True)
     
     def closeManipulator(self):
@@ -324,7 +328,8 @@ class TaskPlanner():
 
     def dropFigure(self):
         self.openManipulator()
-        rospy.sleep(0.5) # Opening
+        # Opening
+        rospy.sleep(0.5) 
         movement = Twist()
         movement.linear.x = -0.15
         self.driver.publish(movement)

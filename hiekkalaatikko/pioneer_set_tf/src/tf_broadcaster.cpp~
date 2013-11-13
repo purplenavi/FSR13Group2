@@ -20,7 +20,6 @@ double getRadian(double degree)
 
 void publish(const tf::Transform &tf, const char *parent, const char *frame)
 {
-    ROS_INFO("publishing transform");
     static tf::TransformBroadcaster caster;
     caster.sendTransform(
         tf::StampedTransform(
@@ -32,7 +31,6 @@ void publish(const tf::Transform &tf, const char *parent, const char *frame)
 
 void Callback(const geometry_msgs::Vector3::ConstPtr& msg)
 {
-    ROS_INFO("TF callback");
     double pan = getRadian(msg->z-90.0);
     double tilt = getRadian(msg->y-90.0);
     tf2.setRotation(tf::createQuaternionFromRPY(0,tilt,pan));

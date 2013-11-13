@@ -10,10 +10,10 @@ import cv
 import rospy
 import numpy as np
 import math
-#import tf
-from sensor_msgs.msg import Image, PointCloud2
+import tf
+from sensor_msgs.msg import Image, PointCloud2, PointField
 from cv_bridge import CvBridge, CvBridgeError
-from geometry_msgs.msg import Vector3, Twist
+from geometry_msgs.msg import Vector3, Twist, PointStamped
 
 #Code samples fetched from http://www.pirobot.org/blog/0016/
 # Draw contour from list of tuples.
@@ -56,6 +56,23 @@ def get_center_coordinates(x, y, w, h):
 THETA = np.pi / 3.0
 COLOR = cv.CV_RGB( 255 , 255 , 255 )
 
+def pointcloud2_to_array(cloud_msg):
+    dtype_list = [(f.name, np.float32) for f in cloud_msg.fields]
+    cloud_arr = np.fromstring(cloud_msg.data, dtype_list)
+    return np.reshape(cloud_arr, (cloud_msg.width, cloud_msg.width)) 
+ 
+def get_xyz_points(cloud_array, remove_nans=True):
+    if remove_nans:
+        mask = np.isfinite(cloud_array['x']) & np.isfinite(cloud_array['y']) & np.isfinite(cloud_array['z'])
+        cloud_array = cloud_array[mask]
+    points = np.zeros(list(cloud_array.shape) + [3], dtype=np.float)
+    points[...,0] = cloud_array['x']
+    points[...,1] = cloud_array['y']
+    points[...,2] = cloud_array['z']
+    return points
+
+def pointcloud2_to_xyz_array(cloud_msg, remove_nans=True):
+    return get_xyz_points(pointcloud2_to_array(cloud_msg), remove_nans=remove_nans) 
 
 class pirate_detector:
    
@@ -79,11 +96,36 @@ class pirate_detector:
         self.publisher = rospy.Publisher('RosAria/cmd_vel', Twist)
         self.image_subscribe = rospy.Subscriber('/camera/rgb/image_mono', Image, self.image_callback)
         #self.rgb_subscribe = rospy.Subscriber('/camera/rgb/image_color', Image, self.rgb_callback)
-        self.point_cloud_subscribe = rospy.Subscriber('/camera/depth/image', Image, self.point_cloud_callback)
+        #self.point_cloud_subscribe = rospy.Subscriber('/camera/depth/image', Image, self.point_cloud_callback)
+        self.point_cloud2_subscribe = rospy.Subscriber('/camera/depth/points', PointCloud2, self.pcl2_callback)
         self.camera_publisher = rospy.Publisher('/ptu_servo_angles', Vector3, latch=False)
         rospy.sleep(1.0)
         self.camera_publisher.publish(Vector3(x=0.0, y=110.0, z=90.0))
         self.img = None
+        self.listener = tf.TransformListener()
+        
+        
+    def pcl2_callback(self, data):
+        print 'PCL2 Callback'
+        #print data.height
+        #print data.fields
+        xyzArr = pointcloud2_to_xyz_array(data, False)
+        pirate = self.pirates.pop()
+        
+        camerapoint = PointStamped()
+        camerapoint.header.frame_id = 'camera_link'
+        camerapoint.header.stamp = rospy.Time.now()
+        camerapoint.point.x = xyzArr[pirate[0]][pirate[1]][0]+0.135
+        camerapoint.point.y = xyzArr[pirate[0]][pirate[1]][1]
+        camerapoint.point.z = xyzArr[pirate[0]][pirate[1]][2]-0.31
+        
+        #worldpoint = PointStamped()
+        #worldpoint = self.listener.transformPoint('map', camerapoint)
+        
+        print xyzArr.shape
+        print xyzArr[pirate[0]][pirate[1]][0]+' -> '+camerapoint.point.x
+        print xyzArr[pirate[0]][pirate[1]][1]+' -> '+worldpoint.point.y
+        print xyzArr[pirate[0]][pirate[1]][2]+' -> '+worldpoint.point.z
         
     def point_cloud_callback(self, data):
         print 'IHQ'
@@ -161,9 +203,8 @@ class pirate_detector:
                     rotated_contour.append(tuple(i))
                 draw_contour(cv_image, rotated_contour, COLOR, 5)
                 x, y, w, h = cv.BoundingRect(contour)
-                if h > w and h > 40 and h < 120:
-                    self.pirates.append((get_center_coordinates(x, y, h, w)))
-                    cv.Rectangle(cv_image, (x, y), (x+w, y+h), (0, 255, 0), cv.CV_FILLED)
+                self.pirates.append((get_center_coordinates(x, y, h, w)))
+                cv.Rectangle(cv_image, (x, y), (x+w, y+h), (0, 255, 0), cv.CV_FILLED)
                 contour_pointer = contour_pointer.h_next()
             self.img = cv_image
             cv.ShowImage(self.cv_window_name, cv_image)
