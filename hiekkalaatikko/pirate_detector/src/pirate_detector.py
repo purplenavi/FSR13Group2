@@ -140,14 +140,13 @@ class pirate_detector:
                     cv_image = self.bridge.imgmsg_to_cv(data)
                 except CvBridgeError, e:
                     print e
-                if pirate[1] > 240 and pirate[1] < 400:
-                    print 'PIRATE AT:'
-                    print pirate
-                    print 'RANGE:'
-                    pirate_locationz = cv_image[pirate[1],pirate[0]]
-                    cv.Circle(self.img, (int(pirate[0]), int(pirate[1])), 3, COLOR, thickness=2)
-                    cv.ShowImage(self.depth_window, cv_image)
-                    break
+                print 'PIRATE AT:'
+                print pirate
+                print 'RANGE:'
+                pirate_locationz = cv_image[pirate[1],pirate[0]]
+                cv.Circle(self.img, (int(pirate[0]), int(pirate[1])), 3, COLOR, thickness=2)
+                cv.ShowImage(self.depth_window, cv_image)
+                break
             if pirate_locationz:
                 twist = Twist()
                 twist.linear.x = 0.1

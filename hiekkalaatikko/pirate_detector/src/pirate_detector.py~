@@ -119,11 +119,11 @@ class pirate_detector:
         camerapoint.point.y = xyzArr[pirate[0]][pirate[1]][1]
         camerapoint.point.z = xyzArr[pirate[0]][pirate[1]][2]-0.31
         
-        worldpoint = PointStamped()
-        worldpoint = self.listener.transformPoint('map', camerapoint)
+        #worldpoint = PointStamped()
+        #worldpoint = self.listener.transformPoint('map', camerapoint)
         
         print xyzArr.shape
-        print xyzArr[pirate[0]][pirate[1]][0]+' -> '+worldpoint.point.x
+        print xyzArr[pirate[0]][pirate[1]][0]+' -> '+camerapoint.point.x
         print xyzArr[pirate[0]][pirate[1]][1]+' -> '+worldpoint.point.y
         print xyzArr[pirate[0]][pirate[1]][2]+' -> '+worldpoint.point.z
         
