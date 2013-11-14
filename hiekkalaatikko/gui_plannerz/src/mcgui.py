@@ -17,6 +17,7 @@ from sensor_msgs.msg import Image, PointCloud2, PointField
 import os
 import sys
 import cv
+from pointcloud import *
 
 class Widgetti(QWidget):
 
@@ -171,8 +172,8 @@ class RoboMap(QGraphicsView):
         self.h = msg.info.height
         self.resolution = msg.info.resolution
         self.origin = (msg.info.origin.position.x, msg.info.origin.position.y)
-        print 'Origin at:' + str(msg.info.origin.position.x) + ' ' + str(msg.info.origin.position.y)
-        self.parent.update_textbox('Origin at:', (str(msg.info.origin.position.x) + ' ' + str(msg.info.origin.position.y)))
+        #print 'Origin at:' + str(msg.info.origin.position.x) + ' ' + str(msg.info.origin.position.y)
+        #self.parent.update_textbox('Origin at:', (str(msg.info.origin.position.x) + ' ' + str(msg.info.origin.position.y)))
         arr = np.array(msg.data, dtype=np.uint8, copy=False, order='C')
         arr = arr.reshape((self.h, self.w))
         img = QImage(arr.reshape((arr.shape[0] * arr.shape[1])), self.w, self.h, QImage.Format_Indexed8)
@@ -288,7 +289,7 @@ class TaskPlanner():
         #self.parent.update_textbox('Task Planner', 'Task planner initialized')
         #print 'Task planner initialized'
         rospy.sleep(1.0)
-        self.home = self.parent.robomap.origin
+        self.home = [0, 0]
         
         self.openManipulator() # To ensure it's all the way opened
 
@@ -301,10 +302,8 @@ class TaskPlanner():
                 goal = None
                 while not goal:
                     goal = self.parent.pirate_detector.get_move_goal()
-                    print goal
-                    print self.parent.robomap.origin
-                if abs(goal.pose.position.x - self.parent.robomap.origin[0]) < 0.05 and abs(goal.pose.position.y - self.parent.robomap.origin[1]) < 0.05:
-                    self.state = 'grab_pirate_go_home'
+                rospy.sleep(3)
+                self.state = 'grab_pirate_go_home'
             
             elif self.state == 'grab_pirate_go_home':
                 print 'closing'
@@ -408,7 +407,7 @@ class pirate_detector:
         
     def get_move_goal(self):
         if self.move_goal:
-            print 'returning move_goal ' + str(self.move_goal) + '!'
+            self.parent.update_textbox('RETURNING MOVE GOAL: ',str(self.move_goal))
             self.parent.goal_publisher.publish(self.move_goal)
         else:
             print 'No move goal, retrying...'
@@ -419,15 +418,19 @@ class pirate_detector:
         print 'PCL2 Callback'
         self.pcl_data = data
         print 'We has piratez'
-        xyzArr = self.pointcloud2_to_xyz_array(data, False)
+        
         pirate = self.pirates.pop()
-        self.pirates = []
+        cloud_data = pointcloud2_to_xyz_array(data)
+        datapoint = cloud_data[pirate[0] + pirate[1]*640]
+        print datapoint
+        #self.pirates = []
         #Create a P2P message to reach the figure
         camerapoint = PoseStamped()
-        x = xyzArr[pirate[1]][pirate[0]][0]+0.135 + self.parent.robomap.origin[0]
-        y = xyzArr[pirate[1]][pirate[0]][1] + self.parent.robomap.origin[1]
-        z = xyzArr[pirate[1]][pirate[0]][2]-0.31 #Hihavakioita, koska fuck yeah :P
-        quaternion = quaternion_from_euler(0, 0, atan2(y-self.parent.robomap.origin[1], x-self.parent.robomap.origin[0]))
+        #z is depth
+        x = datapoint[2]
+        y = datapoint[0]
+        z = datapoint[1]-0.31 #Hihavakioita, koska fuck yeah :P
+        quaternion = quaternion_from_euler(0, 0, atan2(y-0, x-0))
         camerapoint.header.frame_id = 'map'
         camerapoint.header.stamp = rospy.Time.now()
         camerapoint.pose.position.x = x
@@ -479,9 +482,10 @@ class pirate_detector:
                     rotated_contour.append(tuple(i))
                 self.draw_contour(cv_image, rotated_contour, cv.CV_RGB( 255 , 255 , 255 ), 5)
                 x, y, w, h = cv.BoundingRect(contour)
-                if h > w and h > 20 and h < 170:
+                if h > w and h > 20 and h < 90:
                     self.pirates.append((self.get_center_coordinates(x, y, h, w)))
                     cv.Rectangle(cv_image, (x, y), (x+w, y+h), (0, 255, 0), cv.CV_FILLED)
+                    break
                 contour_pointer = contour_pointer.h_next()
             print self.pirates
             self.img = cv_image
