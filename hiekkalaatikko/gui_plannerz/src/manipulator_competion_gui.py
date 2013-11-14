@@ -37,8 +37,8 @@ class Widgetti(QWidget):
         self.drive.clicked.connect(self.Engage)
 
         self.gui_publisher = rospy.Publisher('gui_plan', Path)
-		#support to 1 point movement
-		
+        #support to 1 point movement
+        
         self.goal_publisher = rospy.Publisher('move_base_simple/goal', PoseStamped)
         self.pirate_detector = pirate_detector()
         self.debug_stream = QTextEdit(self)
@@ -427,8 +427,8 @@ class pirate_detector:
             self.parent.goal_publisher.publish(camerapoint)
             rospy.sleep(0.5)
             self.move_goal = camerapoint
-		
-		    #Need to rotate the robot again...
+        
+            #Need to rotate the robot again...
             cp2 = PoseStamped()
             cp2.header.frame_id = 'map'
             cp2.header.stamp = rospy.Time.now()
@@ -445,11 +445,11 @@ class pirate_detector:
         if self.UPDATE_PIRATE_DATA:
             self.move_goal = None
             try:
-			    #convert image to opencv format
-			    cv_image = self.bridge.imgmsg_to_cv(data, "mono8")
+                #convert image to opencv format
+                cv_image = self.bridge.imgmsg_to_cv(data, "mono8")
             except CvBridgeError, e:
                 print e
-		    #Canny detecting
+            #Canny detecting
             cv.EqualizeHist(cv_image, cv_image)
             cv.Smooth(cv_image, cv_image, cv.CV_GAUSSIAN, 11, 11)
             yuv = cv.CreateImage(cv.GetSize(cv_image), 8, 3)
@@ -458,23 +458,23 @@ class pirate_detector:
             cv.Canny(cv_image,canny,50,250)
             bwimage = cv.CreateImage(cv.GetSize(canny), 8, 1)
             cv.Threshold(canny, bwimage, 128, 255, cv.CV_THRESH_BINARY)
-		
+        
             a = np.asarray(canny[:,:])
             cv.FloodFill(canny, (0, 0), 0)
             storage = cv.CreateMemStorage()
             contour_pointer = cv.FindContours(canny, storage, method=cv.CV_CHAIN_APPROX_TC89_KCOS,mode=cv.CV_RETR_EXTERNAL)
             contour_areas = []
-		
+        
             while contour_pointer is not None:
                 contour = contour_pointer[ : ]
                 centre_of_mass = self.find_centre_of_mass(contour)
                 rotated_contour = self.rotate_contour(contour, centre_of_mass, 0)
                 lst = []
-		
+        
                 for i in rotated_contour:
                     lst.append(list(i))
                 rotated_contour = []
-		
+        
                 for i in lst:
                     i[0] = int(i[0])
                     i[1] = int(i[1])
@@ -484,7 +484,7 @@ class pirate_detector:
                 if h > w and h > 20 and h < 170:
                     self.pirates.append((self.get_center_coordinates(x, y, h, w)))
                     cv.Rectangle(cv_image, (x, y), (x+w, y+h), (0, 255, 0), cv.CV_FILLED)
-	            contour_pointer = contour_pointer.h_next()
+                contour_pointer = contour_pointer.h_next()
             print self.pirates
             self.img = cv_image
             cv.ShowImage(self.cv_window_name, cv_image)
@@ -501,17 +501,17 @@ class pirate_detector:
 
         cv.ShowImage(self.rgb_window_name, rgb_image)
         cv.WaitKey(3000)
-		
-	#Code samples fetched from http://www.pirobot.org/blog/0016/
-	# Draw contour from list of tuples.
+        
+    #Code samples fetched from http://www.pirobot.org/blog/0016/
+    # Draw contour from list of tuples.
     def draw_contour( self, im , contour , color , thickness = 1 , linetype = 8 ,
-					  shift = 0 ) :
+                      shift = 0 ) :
         if thickness == -1 :
             cv.FillPoly( im , [contour] , color , linetype , shift )
         else :
             cv.PolyLine( im , [contour] , True , color , thickness , linetype , shift )
 
-	# Rotate contour around centre point using numpy.
+    # Rotate contour around centre point using numpy.
     def rotate_contour( self, contour , centre_point , theta ) :
         rotation = np.array( [ [ np.cos( theta ) , -np.sin( theta ) ] , [ np.sin( theta ) ,  np.cos( theta ) ] ] )
         centre = np.vstack( [ centre_point ] * len( contour ) )
@@ -519,7 +519,7 @@ class pirate_detector:
         contour = np.dot( contour , rotation ) + centre
         return [ tuple ( each_row ) for each_row in contour ]
 
-	# Find centre of mass by drawing contour in closed form and using moments.
+    # Find centre of mass by drawing contour in closed form and using moments.
     def find_centre_of_mass( self, contour ) :
         bottom_right = np.max( contour , axis = 0 )
         blank = cv.CreateImage( tuple ( bottom_right ) , 8 , 1 )
@@ -533,7 +533,7 @@ class pirate_detector:
         if sM00 == 0:
             sM00 = 1
         return ( sM10 / sM00 , sM01 / sM00 )
-	  
+      
     def get_center_coordinates(self, x, y, w, h):
         center_x = float(x + w/2.0)
         center_y = float(y + h/2.0)
@@ -543,7 +543,7 @@ class pirate_detector:
         dtype_list = [(f.name, np.float32) for f in cloud_msg.fields]
         cloud_arr = np.fromstring(cloud_msg.data, dtype_list)
         return np.reshape(cloud_arr, (cloud_msg.width, cloud_msg.width)) 
-	 
+     
     def get_xyz_points(self, cloud_array, remove_nans=True):
         if remove_nans:
             mask = np.isfinite(cloud_array['x']) & np.isfinite(cloud_array['y']) & np.isfinite(cloud_array['z'])
@@ -556,8 +556,8 @@ class pirate_detector:
 
     def pointcloud2_to_xyz_array(self, cloud_msg, remove_nans=True):
         return self.get_xyz_points(self.pointcloud2_to_array(cloud_msg), remove_nans=remove_nans) 
-			
-		
+            
+        
 def main(args):
     from python_qt_binding.QtGui import QApplication
     import sys
