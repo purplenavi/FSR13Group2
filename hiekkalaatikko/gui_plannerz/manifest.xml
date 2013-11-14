@@ -11,6 +11,9 @@
   <depend package="rospy"/>
   <depend package="tf"/>
   <depend package="python_qt_binding"/>
+  <depend package="sensor_msgs"/>
+  <depend package="opencv2"/>
+  <depend package="cv_bridge"/>
 
 </package>
 

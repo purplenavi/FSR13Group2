@@ -486,9 +486,9 @@ class pirate_detector:
                     cv.Rectangle(cv_image, (x, y), (x+w, y+h), (0, 255, 0), cv.CV_FILLED)
 	            contour_pointer = contour_pointer.h_next()
             print self.pirates
-            self.img = cv_image
-            cv.ShowImage(self.cv_window_name, cv_image)
-            cv.ShowImage(self.depth_window, canny)
+	        self.img = cv_image
+	        cv.ShowImage(self.cv_window_name, cv_image)
+	        cv.ShowImage(self.depth_window, canny)
             cv.WaitKey(1000)
 
     def rgb_callback(self, data):
