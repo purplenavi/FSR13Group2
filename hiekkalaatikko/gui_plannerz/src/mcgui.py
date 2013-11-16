@@ -399,6 +399,7 @@ class pirate_detector:
         self.move = False
         self.move_goal = None
         self.pcl_data = None
+        self.tf = tf.TransformListener()
         
     def move_to_pirate(self):
         self.UPDATE_PIRATE_DATA = True
@@ -432,6 +433,8 @@ class pirate_detector:
         z = datapoint[1]-0.31 #Hihavakioita, koska fuck yeah :P
         quaternion = quaternion_from_euler(0, 0, atan2(y-0, x-0))
         camerapoint.header.frame_id = 'map'
+        #Needs to be camera_link because thats the original frame for point
+        #camerapoint.header.frame_id = 'camera_link'
         camerapoint.header.stamp = rospy.Time.now()
         camerapoint.pose.position.x = x
         camerapoint.pose.position.y = y
@@ -439,6 +442,8 @@ class pirate_detector:
         camerapoint.pose.orientation.z = quaternion[2]
         self.parent.update_textbox('camera: ',str(camerapoint))
         self.move_goal = camerapoint
+        #Transform the pose for map frame
+        #self.move_goal = self.tf.transformPose('map', camerapoint)
         cv.WaitKey(3000)
         
     def image_callback(self, data):
