@@ -18,8 +18,10 @@ import os
 import sys
 import cv
 from pointcloud import *
-from move_base_msgs import MoveBaseAction
-from ride_msgs.msg import RideNotification, RidePose
+from move_base_msgs.msg import MoveBaseAction, MoveBaseGoal
+#from ride_msgs.msg import RideNotification, RidePose
+import actionlib
+from actionlib_msgs.msg import GoalStatus
 
 class Widgetti(QWidget):
 
@@ -39,7 +41,7 @@ class Widgetti(QWidget):
 		self.gui_publisher = rospy.Publisher('gui_plan', Path)
 		self.goal_publisher = rospy.Publisher('move_base_simple/goal', PoseStamped)
 		self.actionclient = actionlib.SimpleActionClient('move_base', MoveBaseAction)
-		self.notificationPub = rospy.Publisher('notification', RideNotification)
+		#self.notificationPub = rospy.Publisher('notification', RideNotification)
 		self.actionclient.wait_for_server()
 		self.pirate_detector = pirate_detector(parent=self)
 	
@@ -90,24 +92,28 @@ class Widgetti(QWidget):
 		elif status == self.actionclient.get_state():
 			self.pirate_detector.move_goal = None
 		# Send notification to UI
-		notification = RideNotification()
+		#notification = RideNotification()
 		if status is GoalStatus.RECALLED:
-			notification.level = RideNotification.DEBUG
-			notification.msg = "Movement Cancelled"
+		    print 'RECALLED'
+			#notification.level = RideNotification.DEBUG
+			#notification.msg = "Movement Cancelled"
 		elif status is GoalStatus.SUCCEEDED:
-			notification.level = RideNotification.INFO
-			notification.msg = "Movement Complete!"
+			#notification.level = RideNotification.INFO
+			#notification.msg = "Movement Complete!"
 			self.taskplanner.state = self.taskplanner.state + 1
 		elif status is GoalStatus.REJECTED:
-			notification.level = RideNotification.WARN
-			notification.msg = "Destination Rejected!"
+		    print 'REJECTED'
+			#notification.level = RideNotification.WARN
+			#notification.msg = "Destination Rejected!"
 		elif status is GoalStatus.ABORTED:
-			notification.level = RideNotification.ERROR
-			notification.msg = "Movement Aborted!"
+		    print 'ABORTED'
+			#notification.level = RideNotification.ERROR
+			#notification.msg = "Movement Aborted!"
 		else:
-			notification.level = RideNotification.DEBUG
-			notification.msg = "[GoTo] Odd Completion"
-		self.notificationPub.publish(notification)
+		    print 'WTF?'
+			#notification.level = RideNotification.DEBUG
+			#notification.msg = "[GoTo] Odd Completion"
+		#self.notificationPub.publish(notification)
 	
 	def feedback(self, feedback):
 		pose_stamp = feedback.base_position
@@ -116,10 +122,11 @@ class Widgetti(QWidget):
 			# move_base will endlessly spin sometimes without this code
 			self.actionclient.cancel_goal()
 			self.goal = None
-			notification = RideNotification()
-			notification.level = RideNotification.INFO
-			notification.msg = "Movement Complete!"
-			self.notificationPub.publish(notification)
+			#notification = RideNotification()
+			#notification.level = RideNotification.INFO
+			#notification.msg = "Movement Complete!"
+			#self.notificationPub.publish(notification)
+			self.update_textbox('Moving to grabbing', 'YAY!')
 			self.taskplanner.state = self.taskplanner.state + 1
 			
 	def distance(self, t1, t2):
@@ -128,7 +135,7 @@ class Widgetti(QWidget):
 		"""
 		out = 0
 		for dimension in ('x', 'y', 'z'):
-			out += math.pow(getattr(t1.pose.position, dimension) - getattr(t2.pose.position, dimension), 2)
+		    out += math.pow(getattr(t1.target_pose.pose.position, dimension) - getattr(t2.pose.position, dimension), 2)
 		return math.sqrt(out)
 
 	def Engage(self):
@@ -251,7 +258,7 @@ class RoboMap(QGraphicsView):
 				nxt_x = (((self.w/2) - nxt.x()) + (self.w/2)) * self.resolution + self.origin[0]
 				y = porygon[z].y() * self.resolution + self.origin[1]
 				nxt_y = nxt.y() * self.resolution + self.origin[1]
-				angle = atan2(nxt_y - y, nxt_x - x)
+				angle = math.atan2(nxt_y - y, nxt_x - x)
 				quaternion = quaternion_from_euler(0, 0, angle)
 				point_list.append(((x, y), quaternion))
 			return point_list
@@ -347,15 +354,14 @@ class TaskPlanner():
 
 	def execute(self):
 		print 'executing task'
+		i = 0
 		while True:
 			if self.state == 0:
-				self.parent.pirate_detector.move_to_pirate()
-				print 'moving'
-				goal = None
-				while not goal:
-					goal = self.parent.pirate_detector.get_move_goal()
-				rospy.sleep(3)
-			
+			    self.parent.update_textbox('Moving to pirate','Trolloloo')
+			    if i == 0:
+			        self.parent.pirate_detector.move_to_pirate()
+			        i = 1
+				
 			elif self.state == 1:
 				self.parent.update_textbox('Closing and going home','Trolloloo')
 				print 'closing'
@@ -374,7 +380,7 @@ class TaskPlanner():
 		
 	def goToLocation(self,x,y):
 		location = PoseStamped()
-		quaternion = quaternion_from_euler(0, 0, atan2(y-self.parent.robomap.origin[1], x-self.parent.robomap.origin[0]))
+		quaternion = quaternion_from_euler(0, 0, math.atan2(y-self.parent.robomap.origin[1], x-self.parent.robomap.origin[0]))
 		location.header.frame_id = 'map'
 		location.header.stamp = rospy.Time.now()
 		location.pose.position.x = x
@@ -454,103 +460,114 @@ class pirate_detector:
 		self.tf = tf.TransformListener()
 		
 	def move_to_pirate(self):
-		self.UPDATE_PIRATE_DATA = True
-		self.move = True
-		#self.pcl2_callback(self.pcl_data)
-		
-	def get_move_goal(self):
-		if self.move_goal:
-			self.parent.update_textbox('RETURNING MOVE GOAL: ',str(self.move_goal))
-			self.parent.actionclient.send_goal(goal, done_cb=self.parent.done_callback, feedback_cb=self.parent.feedback)
-			#self.parent.goal_publisher.publish(self.move_goal)
-		else:
-			print 'No move goal, retrying...'
-			rospy.sleep(2.0)
-		return self.move_goal
+		self.parent.update_textbox('RETURNING MOVE GOAL: ',str(self.move_goal))
+		self.parent.actionclient.send_goal(self.move_goal, done_cb=self.parent.done_callback, feedback_cb=self.parent.feedback)
+		#self.parent.goal_publisher.publish(self.move_goal)
 		
 	def pcl2_callback(self, data):
 		print 'PCL2 Callback'
 		self.pcl_data = data
-		print 'We has piratez'
-		
-		pirate = self.pirates.pop()
-		cloud_data = pointcloud2_to_xyz_array(data)
-		datapoint = cloud_data[pirate[0] + pirate[1]*640]
-		print datapoint
-		#self.pirates = []
-		#Create a P2P message to reach the figure
-		camerapoint = PoseStamped()
-		#z is depth
-		x = datapoint[2]
-		y = datapoint[0]
-		z = datapoint[1]-0.31 #Hihavakioita, koska fuck yeah :P
-		quaternion = quaternion_from_euler(0, 0, atan2(y-0, x-0))
-		camerapoint.header.frame_id = 'map'
-		#Needs to be camera_link because thats the original frame for point
-		#camerapoint.header.frame_id = 'camera_link'
-		camerapoint.header.stamp = rospy.Time.now()
-		camerapoint.pose.position.x = x
-		camerapoint.pose.position.y = y
-		camerapoint.pose.orientation.w = quaternion[3]
-		camerapoint.pose.orientation.z = quaternion[2]
-		self.parent.update_textbox('camera: ',str(camerapoint))
-		#self.move_goal = camerapoint
-		self.move_goal = MoveBaseGoal(target_pose = self.move_goal)
-		#self.parent.actionclient.send_goal(goal, done_cb=self.parent.done_callback, feedback_cb=self.parent.feedback)
-		#Transform the pose for map frame
-		#self.move_goal = self.tf.transformPose('map', camerapoint)
-		cv.WaitKey(3000)
+		if len(self.pirates) > 0:
+		    print 'We has piratez'
+		    pirate = self.pirates[0]
+		    #cloud_data = pointcloud2_to_xyz_array(data)
+		    cloud_data = pointcloud2_to_array(data)
+		    inedx = int(pirate[0] + pirate[1]*640)
+		    self.parent.update_textbox('Pirate image coordinates: ',str(pirate[0]) + ' ' + str(pirate[1]))
+		    self.parent.update_textbox('Cloud data x size, index: ',str(len(cloud_data['x'][0])) + ' ' + str(inedx))
+		    self.parent.update_textbox('Cloud data y size, index: ',str(len(cloud_data['y'])) + ' ' + str(inedx))
+		    self.parent.update_textbox('Cloud data z size, index: ',str(len(cloud_data['z'])) + ' ' + str(inedx))
+		    datapoint = []
+		    found = False
+		    for x in range(10):
+		        for y in range(10):
+		            datapoint = []
+		            datapoint.append(cloud_data['x'][pirate[1]+y-5][pirate[0]+x-5])
+		            datapoint.append(cloud_data['y'][pirate[1]+y-5][pirate[0]+x-5])
+		            datapoint.append(cloud_data['z'][pirate[1]+y-5][pirate[0]+x-5])
+		            if not math.isnan(datapoint[0]) and not math.isnan(datapoint[1]) and not math.isnan(datapoint[2]):
+		                found = True
+		                break
+		        if found:
+		            break
+		    if found:
+		        self.pirates = []
+		        #datapoint = cloud_data[pirate[0] + pirate[1]*640]
+		        print datapoint
+		        #self.pirates = []
+		        #Create a P2P message to reach the figure
+		        camerapoint = PoseStamped()
+		        #z is depth in cloud data
+		        x = datapoint[2] - 0.15
+		        y = -datapoint[0]
+		        z = datapoint[1]
+		        quaternion = quaternion_from_euler(0, 0, math.atan2(y-0, x-0))
+		        camerapoint.header.frame_id = 'map'
+		        #Needs to be camera_link because thats the original frame for point
+		        #camerapoint.header.frame_id = 'camera_link'
+		        camerapoint.header.stamp = rospy.Time.now()
+		        camerapoint.pose.position.x = x
+		        camerapoint.pose.position.y = y
+		        camerapoint.pose.orientation.w = quaternion[3]
+		        camerapoint.pose.orientation.z = quaternion[2]
+		        self.parent.update_textbox('camera: ',str(camerapoint))
+		        self.move_goal = camerapoint
+		        self.move_goal = MoveBaseGoal(target_pose = self.move_goal)
+		        #self.parent.actionclient.send_goal(goal, done_cb=self.parent.done_callback, feedback_cb=self.parent.feedback)
+		        #Transform the pose for map frame
+		        #self.move_goal = self.tf.transformPose('map', camerapoint)
+		        #cv.WaitKey(3000)
+		    else:
+		        cv.WaitKey(500)
 		
 	def image_callback(self, data):
 		print 'image callback'
-		if self.UPDATE_PIRATE_DATA:
-			self.move_goal = None
-			try:
-				#convert image to opencv format
-				cv_image = self.bridge.imgmsg_to_cv(data, "mono8")
-			except CvBridgeError, e:
-				print e
-			#Canny detecting
-			cv.EqualizeHist(cv_image, cv_image)
-			cv.Smooth(cv_image, cv_image, cv.CV_GAUSSIAN, 11, 11)
-			yuv = cv.CreateImage(cv.GetSize(cv_image), 8, 3)
-			gray = cv.CreateImage(cv.GetSize(cv_image), 8, 1)
-			canny = cv.CreateImage(cv.GetSize(cv_image),8, 1)
-			cv.Canny(cv_image,canny,50,250)
-			bwimage = cv.CreateImage(cv.GetSize(canny), 8, 1)
-			cv.Threshold(canny, bwimage, 128, 255, cv.CV_THRESH_BINARY)
-		
-			a = np.asarray(canny[:,:])
-			cv.FloodFill(canny, (0, 0), 0)
-			storage = cv.CreateMemStorage()
-			contour_pointer = cv.FindContours(canny, storage, method=cv.CV_CHAIN_APPROX_TC89_KCOS,mode=cv.CV_RETR_EXTERNAL)
-			contour_areas = []
-		
-			while contour_pointer is not None:
-				contour = contour_pointer[ : ]
-				centre_of_mass = self.find_centre_of_mass(contour)
-				rotated_contour = self.rotate_contour(contour, centre_of_mass, 0)
-				lst = []
-		
-				for i in rotated_contour:
-					lst.append(list(i))
-				rotated_contour = []
-		
-				for i in lst:
-					i[0] = int(i[0])
-					i[1] = int(i[1])
-					rotated_contour.append(tuple(i))
-				self.draw_contour(cv_image, rotated_contour, cv.CV_RGB( 255 , 255 , 255 ), 5)
-				x, y, w, h = cv.BoundingRect(contour)
-				if h > w and h > 20 and h < 90:
-					self.pirates.append((self.get_center_coordinates(x, y, h, w)))
-					cv.Rectangle(cv_image, (x, y), (x+w, y+h), (0, 255, 0), cv.CV_FILLED)
-					break
-				contour_pointer = contour_pointer.h_next()
-			print self.pirates
-			self.img = cv_image
-			cv.ShowImage(self.cv_window_name, cv_image)
-			cv.WaitKey(3000)
+		try:
+			#convert image to opencv format
+			cv_image = self.bridge.imgmsg_to_cv(data, "mono8")
+		except CvBridgeError, e:
+			print e
+		#Canny detecting
+		cv.EqualizeHist(cv_image, cv_image)
+		cv.Smooth(cv_image, cv_image, cv.CV_GAUSSIAN, 11, 11)
+		yuv = cv.CreateImage(cv.GetSize(cv_image), 8, 3)
+		gray = cv.CreateImage(cv.GetSize(cv_image), 8, 1)
+		canny = cv.CreateImage(cv.GetSize(cv_image),8, 1)
+		cv.Canny(cv_image,canny,50,250)
+		bwimage = cv.CreateImage(cv.GetSize(canny), 8, 1)
+		cv.Threshold(canny, bwimage, 128, 255, cv.CV_THRESH_BINARY)
+	
+		a = np.asarray(canny[:,:])
+		cv.FloodFill(canny, (0, 0), 0)
+		storage = cv.CreateMemStorage()
+		contour_pointer = cv.FindContours(canny, storage, method=cv.CV_CHAIN_APPROX_TC89_KCOS,mode=cv.CV_RETR_EXTERNAL)
+		contour_areas = []
+	
+		while contour_pointer is not None:
+			contour = contour_pointer[ : ]
+			centre_of_mass = self.find_centre_of_mass(contour)
+			rotated_contour = self.rotate_contour(contour, centre_of_mass, 0)
+			lst = []
+	
+			for i in rotated_contour:
+				lst.append(list(i))
+			rotated_contour = []
+	
+			for i in lst:
+				i[0] = int(i[0])
+				i[1] = int(i[1])
+				rotated_contour.append(tuple(i))
+			self.draw_contour(cv_image, rotated_contour, cv.CV_RGB( 255 , 255 , 255 ), 5)
+			x, y, w, h = cv.BoundingRect(contour)
+			if h > w and h > 20 and h < 90:
+				self.pirates.append((self.get_center_coordinates(x, y, h, w)))
+				cv.Rectangle(cv_image, (x, y), (x+w, y+h), (0, 255, 0), cv.CV_FILLED)
+				break
+			contour_pointer = contour_pointer.h_next()
+		print self.pirates
+		self.img = cv_image
+		cv.ShowImage(self.cv_window_name, cv_image)
+		cv.WaitKey(3000)
 
 	def rgb_callback(self, data):
 		print "RGB Callback"
