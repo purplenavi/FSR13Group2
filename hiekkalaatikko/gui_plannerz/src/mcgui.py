@@ -10,7 +10,8 @@ from tf.transformations import quaternion_from_euler
 import python_qt_binding
 from python_qt_binding.QtCore import Signal, Slot, QPointF, qWarning, Qt, QTimer
 from python_qt_binding.QtGui import QWidget, QMessageBox, QTextEdit, QLabel, QPixmap, QBrush, QImage, QGraphicsView, QGraphicsScene, QPainterPath, QPen, QPolygonF, QVBoxLayout, QHBoxLayout, QColor, qRgb, QPushButton, QRadioButton
-from geometry_msgs.msg import PoseStamped, Vector3, Twist
+from geometry_msgs.msg import PoseStamped, Vector3, Twist, PoseWithCovarianceStamped
+from nav_msgs.msg import Odometry
 from std_msgs.msg import String
 from cv_bridge import CvBridge, CvBridgeError
 from sensor_msgs.msg import Image, PointCloud2, PointField
@@ -35,12 +36,15 @@ class Widgetti(QWidget):
         
 
         self.setWindowTitle('Gui plannerz lol')
-        self.drive = QPushButton('DRIVE!')
-        self.drive.clicked.connect(self.Engage)
+        self.drive = QPushButton('Removed driving lol!')
+        #Removing driving, might mess up the task planner?
+        #self.drive.clicked.connect(self.Engage)
 
         self.gui_publisher = rospy.Publisher('gui_plan', Path)
-        self.goal_publisher = actionlib.SimpleActionClient('move_base', MoveBaseAction)
         self.actionclient = actionlib.SimpleActionClient('move_base', MoveBaseAction)
+        self.pose_sub = rospy.Subscriber('RosAria/pose', Odometry, self.pose_callback)
+        self.pose = None
+        self.waiting = False
         #self.notificationPub = rospy.Publisher('notification', RideNotification)
         self.actionclient.wait_for_server()
         self.pirate_detector = pirate_detector(parent=self)
@@ -86,6 +90,9 @@ class Widgetti(QWidget):
         self.debug_stream.insertPlainText(header + '\n')
         self.debug_stream.insertPlainText(txt+'\n')
         
+    def pose_callback(self, data):
+        self.pose = data
+        
     def done_callback(self, status, result):
         if self.pirate_detector.move_goal is None:
             return
@@ -94,53 +101,59 @@ class Widgetti(QWidget):
         # Send notification to UI
         #notification = RideNotification()
         if status is GoalStatus.RECALLED:
-            self.update_textbox('Goal Status', 'RECALLED (movement cancelled)')
+            print 'recalled'
+            #self.update_textbox('Goal Status', 'RECALLED (movement cancelled)')
             #notification.level = RideNotification.DEBUG
             #notification.msg = "Movement Cancelled"
         elif status is GoalStatus.SUCCEEDED:
+            print 'success'
             #notification.level = RideNotification.INFO
             #notification.msg = "Movement Complete!"
-            self.update_textbox('Goal Status' ,'SUCCEEDED')
-            self.taskplanner.state = self.taskplanner.state + 1
+            #self.update_textbox('Goal Status' ,'SUCCEEDED')
+            #self.taskplanner.state = self.taskplanner.state + 1
         elif status is GoalStatus.REJECTED:
-            self.update_textbox('Goal Status', 'REJECTED')
+            print 'rejected'
+            #self.update_textbox('Goal Status', 'REJECTED')
             #notification.level = RideNotification.WARN
             #notification.msg = "Destination Rejected!"
         elif status is GoalStatus.ABORTED:
-            self.update_textbox('Goal Status', 'ABORTED')
+            print 'aborted'
+            #self.update_textbox('Goal Status', 'ABORTED')
             #notification.level = RideNotification.ERROR
             #notification.msg = "Movement Aborted!"
         else:
-            self.update_textbox('Goal Status', 'WTF? something else')
+            print 'sumthing else'
+            #self.update_textbox('Goal Status', 'WTF? something else')
             #notification.level = RideNotification.DEBUG
             #notification.msg = "[GoTo] Odd Completion"
         #self.notificationPub.publish(notification)
     
     def feedback(self, feedback):
         pose_stamp = feedback.base_position
-        if self.pirate_detector.move_goal:
-            print 'Current distance: '+str(self.distance(self.pirate_detector.move_goal, pose_stamp))
+        #if self.pirate_detector.move_goal:
             #self.update_textbox('Current distance from goal', str(self.distance(self.pirate_detector.move_goal, pose_stamp)))
-        if self.pirate_detector.move_goal and self.distance(self.pirate_detector.move_goal, pose_stamp) < 0.1:
+        if self.pirate_detector.move_goal and self.distance(self.pirate_detector.move_goal, pose_stamp) < 0.2:
+            print str(self.distance(self.pirate_detector.move_goal, pose_stamp))
             # this check cancels the goal if the robot is "close enough"
             # move_base will endlessly spin sometimes without this code
             self.actionclient.cancel_goal()
+            rospy.sleep(1.0)
             self.goal = None
             #notification = RideNotification()
             #notification.level = RideNotification.INFO
             #notification.msg = "Movement Complete!"
             #self.notificationPub.publish(notification)
-            self.update_textbox('Moving to grabbing', 'YAY!')
+            #self.update_textbox('Moving to grabbing', 'YAY!')
+            print 'Moving to next state from ' + str(self.taskplanner.state)
             self.taskplanner.state = self.taskplanner.state + 1
-        else:
-            print 'Too far'
+            self.waiting = False
             
     def distance(self, t1, t2):
         """
         Given two PoseStamped's, determine the distance
         """
         out = 0
-        for dimension in ('x', 'y', 'z'):
+        for dimension in ('x', 'y'):
             out += math.pow(getattr(t1.target_pose.pose.position, dimension) - getattr(t2.pose.position, dimension), 2)
         return math.sqrt(out)
 
@@ -360,27 +373,35 @@ class TaskPlanner():
 
     def execute(self):
         print 'executing task'
-        i = 0
         while True:
-            if self.state == 0:
-                #self.parent.update_textbox('Moving to pirate','Trolloloo')
-                if i == 0:
+            if not self.parent.waiting:
+                self.parent.update_textbox('Current state',str(self.state))
+                if self.state == 0:
+                    #self.parent.update_textbox('Moving to pirate','Trolloloo')
                     print 'Moving to pirate for first time'
                     self.parent.pirate_detector.move_to_pirate()
-                    i = 1
+                    self.parent.waiting = True
+                    
+                elif self.state == 1:
+                    #self.parent.update_textbox('Closing and going home','Trolloloo')
+                    print 'closing'
+                    self.parent.waiting = True
+                    self.grab_figure()
+                    
+                elif self.state == 2:
+                    self.goHomeBase()
+                    #rospy.sleep(2.0)
+                    #self.state = 2
+                    
+                elif self.state == 3:
+                    print 'dropping'
+                    self.drop_figure()
+                    rospy.sleep(2.0)
                 
-            elif self.state == 1:
-                self.parent.update_textbox('Closing and going home','Trolloloo')
-                print 'closing'
-                self.grab_figure()
-                #rospy.sleep(2.0)
-                #self.state = 2
-                
-            elif self.state == 2:
-                print 'dropping'
-                self.drop_figure()
-                rospy.sleep(2.0)
-                self.state = 'detect_pirate'
+                elif self.state == 4:
+                    print 'State 4 woohoo!'
+            else:
+                pass
 
     def manipulatorCb(self, msg):
         self.parent.update_textbox('Manipulator subscription',msg)
@@ -392,25 +413,40 @@ class TaskPlanner():
         location.header.stamp = rospy.Time.now()
         location.pose.position.x = x
         location.pose.position.y = y
-        location.pose.orientation.w = quaternion[3]
-        location.pose.orientation.z = quaternion[2]
-        #self.parent.goal_publisher.publish(location)
+        location.pose.orientation.w = self.parent.pose.pose.pose.orientation.w
+        location.pose.orientation.z = self.parent.pose.pose.pose.orientation.z
         location = MoveBaseGoal(target_pose=location)
-        self.parent.actionclient.publish(location)
+        print 'Sending home goal'
+        self.parent.actionclient.send_goal(location, feedback_cb=self.parent.feedback)
         
     def grab_figure(self):
         self.closeManipulator()
         # Closing
         rospy.sleep(0.5)
+        print 'REVERSING LOL'
+        reverse_pose = self.parent.pose
+        reverse_pose.pose.pose.position.x -= 0.2
         self.reverse()
-        # Go home
-        self.goHomeBase()
+        while self.parent.waiting:
+            if self.reverse_feedback(self.parent.pose, reverse_pose) < 0.1:
+                self.parent.update_textbox('Reversing done','Yay!')
+                self.state += 1
+                self.parent.waiting = False
 
     def drop_figure(self):
         self.openManipulator()
         # Opening
         rospy.sleep(0.5)
         self.reverse()
+        
+    def reverse_feedback(self, t1, t2):
+        """
+        Given two PoseStamped's, determine the distance
+        """
+        out = 0
+        for dimension in ('x', 'y'):
+            out += math.pow(getattr(t1.pose.pose.position, dimension) - getattr(t2.pose.pose.position, dimension), 2)
+        return math.sqrt(out)
 
     def reverse(self,distance=0.2):
         r = rospy.Rate(1.0) # 1 Hz
@@ -428,6 +464,7 @@ class TaskPlanner():
         self.driver.publish(Twist())
 
     def goHomeBase(self):
+        self.parent.waiting = True
         self.goToLocation(self.home[0],self.home[1])
         print 'Getting this pirate home'
 
@@ -470,12 +507,12 @@ class pirate_detector:
         self.tf = tf.TransformListener()
         
     def move_to_pirate(self):
-        self.parent.update_textbox('RETURNING MOVE GOAL: ',str(self.move_goal))
-        self.parent.actionclient.send_goal(self.move_goal, done_cb=self.parent.done_callback, feedback_cb=self.parent.feedback)
+        #self.parent.update_textbox('RETURNING MOVE GOAL: ',str(self.move_goal))
+        print 'moving to pirate YARRRR'
+        self.parent.actionclient.send_goal(self.move_goal, feedback_cb=self.parent.feedback)
         #self.parent.goal_publisher.publish(self.move_goal)
         
     def pcl2_callback(self, data):
-        print 'PCL2 Callback'
         self.pcl_data = data
         if len(self.pirates) > 0:
             print 'We has piratez'
@@ -508,7 +545,7 @@ class pirate_detector:
                 #Create a P2P message to reach the figure
                 camerapoint = PoseStamped()
                 #z is depth in cloud data
-                x = datapoint[2] - 0.15
+                x = datapoint[2]
                 y = -datapoint[0]
                 z = datapoint[1]
                 quaternion = quaternion_from_euler(0, 0, math.atan2(y-0, x-0))

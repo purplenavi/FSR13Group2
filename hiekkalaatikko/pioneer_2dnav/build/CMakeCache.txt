@@ -164,6 +164,21 @@ EXECUTABLE_OUTPUT_PATH:PATH=
 //gtest-config executable
 GTEST_EXE:FILEPATH=GTEST_EXE-NOTFOUND
 
+//Path to a program.
+Java_JAR_EXECUTABLE:FILEPATH=/usr/bin/jar
+
+//Path to a program.
+Java_JAVAC_EXECUTABLE:FILEPATH=/usr/bin/javac
+
+//Path to a program.
+Java_JAVADOC_EXECUTABLE:FILEPATH=/usr/bin/javadoc
+
+//Path to a program.
+Java_JAVAH_EXECUTABLE:FILEPATH=/usr/bin/javah
+
+//Path to a program.
+Java_JAVA_EXECUTABLE:FILEPATH=/usr/bin/java
+
 //Single output directory for building all libraries.
 LIBRARY_OUTPUT_PATH:PATH=
 
@@ -323,13 +338,25 @@ CMAKE_UNAME:INTERNAL=/bin/uname
 CMAKE_USE_RELATIVE_PATHS-ADVANCED:INTERNAL=1
 //ADVANCED property for variable: CMAKE_VERBOSE_MAKEFILE
 CMAKE_VERBOSE_MAKEFILE-ADVANCED:INTERNAL=1
+//Details about finding Java
+FIND_PACKAGE_MESSAGE_DETAILS_Java:INTERNAL=[/usr/bin/java][/usr/bin/jar][/usr/bin/javac][/usr/bin/javah][/usr/bin/javadoc][v1.6.0.27()]
 //Details about finding PythonInterp
 FIND_PACKAGE_MESSAGE_DETAILS_PythonInterp:INTERNAL=[/usr/bin/python][v2.7.3()]
+//ADVANCED property for variable: Java_JAR_EXECUTABLE
+Java_JAR_EXECUTABLE-ADVANCED:INTERNAL=1
+//ADVANCED property for variable: Java_JAVAC_EXECUTABLE
+Java_JAVAC_EXECUTABLE-ADVANCED:INTERNAL=1
+//ADVANCED property for variable: Java_JAVADOC_EXECUTABLE
+Java_JAVADOC_EXECUTABLE-ADVANCED:INTERNAL=1
+//ADVANCED property for variable: Java_JAVAH_EXECUTABLE
+Java_JAVAH_EXECUTABLE-ADVANCED:INTERNAL=1
+//ADVANCED property for variable: Java_JAVA_EXECUTABLE
+Java_JAVA_EXECUTABLE-ADVANCED:INTERNAL=1
 //ADVANCED property for variable: PYTHON_EXECUTABLE
 PYTHON_EXECUTABLE-ADVANCED:INTERNAL=1
 _rosbuild_EXPORTS:INTERNAL=
-_rosbuild_cached_flag_time:INTERNAL=1382162979.63
-_roslang_LANGS:INTERNAL=roslisp;rospy;roscpp
+_rosbuild_cached_flag_time:INTERNAL=1385033259.14
+_roslang_LANGS:INTERNAL=rosjava_jni;roscpp;rospy;roslisp
 _rospack_deps_manifests_invoke_result:INTERNAL=/opt/ros/fuerte/share/roslang/manifest.xml;/opt/ros/fuerte/share/roscpp/manifest.xml;/opt/ros/fuerte/share/rosconsole/manifest.xml;/opt/ros/fuerte/share/std_msgs/manifest.xml;/opt/ros/fuerte/share/roslib/manifest.xml;/opt/ros/fuerte/share/actionlib_msgs/manifest.xml;/opt/ros/fuerte/share/geometry_msgs/manifest.xml;/opt/ros/fuerte/stacks/navigation/move_base_msgs/manifest.xml;/opt/ros/fuerte/share/visualization_msgs/manifest.xml;/opt/ros/fuerte/share/rospy/manifest.xml;/opt/ros/fuerte/share/rostest/manifest.xml;/opt/ros/fuerte/share/actionlib/manifest.xml;/opt/ros/fuerte/stacks/navigation/nav_core/manifest.xml;/opt/ros/fuerte/share/ros/core/rosbuild/manifest.xml;/opt/ros/fuerte/stacks/pluginlib/manifest.xml;/opt/ros/fuerte/share/sensor_msgs/manifest.xml;/opt/ros/fuerte/stacks/bullet/manifest.xml;/opt/ros/fuerte/stacks/geometry/angles/manifest.xml;/opt/ros/fuerte/share/roswtf/manifest.xml;/opt/ros/fuerte/share/message_filters/manifest.xml;/opt/ros/fuerte/stacks/geometry/tf/manifest.xml;/opt/ros/fuerte/stacks/common_rosdeps/manifest.xml;/opt/ros/fuerte/stacks/laser_pipeline/laser_geometry/manifest.xml;/opt/ros/fuerte/stacks/navigation/voxel_grid/manifest.xml;/opt/ros/fuerte/share/nav_msgs/manifest.xml;/opt/ros/fuerte/share/rosbag/manifest.xml;/opt/ros/fuerte/stacks/navigation/map_server/manifest.xml;/opt/ros/fuerte/share/pcl/manifest.xml;/opt/ros/fuerte/stacks/bond_core/bond/manifest.xml;/opt/ros/fuerte/stacks/bond_core/smclib/manifest.xml;/opt/ros/fuerte/stacks/bond_core/bondcpp/manifest.xml;/opt/ros/fuerte/stacks/nodelet_core/nodelet/manifest.xml;/opt/ros/fuerte/share/rosservice/manifest.xml;/opt/ros/fuerte/stacks/dynamic_reconfigure/manifest.xml;/opt/ros/fuerte/stacks/nodelet_core/nodelet_topic_tools/manifest.xml;/opt/ros/fuerte/stacks/perception_pcl/pcl_ros/manifest.xml;/opt/ros/fuerte/stacks/navigation/costmap_2d/manifest.xml;/opt/ros/fuerte/share/rosmsg/manifest.xml;/opt/ros/fuerte/share/rostopic/manifest.xml;/opt/ros/fuerte/share/std_srvs/manifest.xml;/opt/ros/fuerte/stacks/navigation/base_local_planner/manifest.xml;/opt/ros/fuerte/stacks/navigation/navfn/manifest.xml;/opt/ros/fuerte/stacks/navigation/clear_costmap_recovery/manifest.xml;/opt/ros/fuerte/stacks/navigation/rotate_recovery/manifest.xml;/opt/ros/fuerte/stacks/navigation/move_base/manifest.xml;/home/group2/fuerte_workspace/fsr2013/hiekkalaatikko/pioneer_set_tf/manifest.xml
 _rospack_msgsrv_gen_invoke_result:INTERNAL=/opt/ros/fuerte/stacks/navigation/move_base_msgs/msg_gen/generated;/opt/ros/fuerte/stacks/geometry/tf/msg_gen/generated;/opt/ros/fuerte/stacks/geometry/tf/srv_gen/generated;/opt/ros/fuerte/stacks/bond_core/bond/msg_gen/generated;/opt/ros/fuerte/stacks/nodelet_core/nodelet/srv_gen/generated;/opt/ros/fuerte/stacks/dynamic_reconfigure/msg_gen/generated;/opt/ros/fuerte/stacks/dynamic_reconfigure/srv_gen/generated;/opt/ros/fuerte/stacks/navigation/costmap_2d/msg_gen/generated;/opt/ros/fuerte/stacks/navigation/base_local_planner/msg_gen/generated;/opt/ros/fuerte/stacks/navigation/navfn/srv_gen/generated
 pioneer_2dnav_CFLAGS_OTHER:INTERNAL=-DBT_USE_DOUBLE_PRECISION -DBT_EULER_DEFAULT_ZYX
@@ -341,6 +368,7 @@ pioneer_2dnav_LIBRARY_DIRS:INTERNAL=/opt/ros/fuerte/stacks/navigation/move_base/
 pioneer_2dnav_cached_manifest_list:INTERNAL=/home/group2/fuerte_workspace/fsr2013/hiekkalaatikko/pioneer_2dnav/manifest.xml;/opt/ros/fuerte/share/roslang/manifest.xml;/opt/ros/fuerte/share/roscpp/manifest.xml;/opt/ros/fuerte/share/rosconsole/manifest.xml;/opt/ros/fuerte/share/std_msgs/manifest.xml;/opt/ros/fuerte/share/roslib/manifest.xml;/opt/ros/fuerte/share/actionlib_msgs/manifest.xml;/opt/ros/fuerte/share/geometry_msgs/manifest.xml;/opt/ros/fuerte/stacks/navigation/move_base_msgs/manifest.xml;/opt/ros/fuerte/share/visualization_msgs/manifest.xml;/opt/ros/fuerte/share/rospy/manifest.xml;/opt/ros/fuerte/share/rostest/manifest.xml;/opt/ros/fuerte/share/actionlib/manifest.xml;/opt/ros/fuerte/stacks/navigation/nav_core/manifest.xml;/opt/ros/fuerte/share/ros/core/rosbuild/manifest.xml;/opt/ros/fuerte/stacks/pluginlib/manifest.xml;/opt/ros/fuerte/share/sensor_msgs/manifest.xml;/opt/ros/fuerte/stacks/bullet/manifest.xml;/opt/ros/fuerte/stacks/geometry/angles/manifest.xml;/opt/ros/fuerte/share/roswtf/manifest.xml;/opt/ros/fuerte/share/message_filters/manifest.xml;/opt/ros/fuerte/stacks/geometry/tf/manifest.xml;/opt/ros/fuerte/stacks/common_rosdeps/manifest.xml;/opt/ros/fuerte/stacks/laser_pipeline/laser_geometry/manifest.xml;/opt/ros/fuerte/stacks/navigation/voxel_grid/manifest.xml;/opt/ros/fuerte/share/nav_msgs/manifest.xml;/opt/ros/fuerte/share/rosbag/manifest.xml;/opt/ros/fuerte/stacks/navigation/map_server/manifest.xml;/opt/ros/fuerte/share/pcl/manifest.xml;/opt/ros/fuerte/stacks/bond_core/bond/manifest.xml;/opt/ros/fuerte/stacks/bond_core/smclib/manifest.xml;/opt/ros/fuerte/stacks/bond_core/bondcpp/manifest.xml;/opt/ros/fuerte/stacks/nodelet_core/nodelet/manifest.xml;/opt/ros/fuerte/share/rosservice/manifest.xml;/opt/ros/fuerte/stacks/dynamic_reconfigure/manifest.xml;/opt/ros/fuerte/stacks/nodelet_core/nodelet_topic_tools/manifest.xml;/opt/ros/fuerte/stacks/perception_pcl/pcl_ros/manifest.xml;/opt/ros/fuerte/stacks/navigation/costmap_2d/manifest.xml;/opt/ros/fuerte/share/rosmsg/manifest.xml;/opt/ros/fuerte/share/rostopic/manifest.xml;/opt/ros/fuerte/share/std_srvs/manifest.xml;/opt/ros/fuerte/stacks/navigation/base_local_planner/manifest.xml;/opt/ros/fuerte/stacks/navigation/navfn/manifest.xml;/opt/ros/fuerte/stacks/navigation/clear_costmap_recovery/manifest.xml;/opt/ros/fuerte/stacks/navigation/rotate_recovery/manifest.xml;/opt/ros/fuerte/stacks/navigation/move_base/manifest.xml;/home/group2/fuerte_workspace/fsr2013/hiekkalaatikko/pioneer_set_tf/manifest.xml;/opt/ros/fuerte/stacks/navigation/move_base_msgs/msg_gen/generated;/opt/ros/fuerte/stacks/geometry/tf/msg_gen/generated;/opt/ros/fuerte/stacks/geometry/tf/srv_gen/generated;/opt/ros/fuerte/stacks/bond_core/bond/msg_gen/generated;/opt/ros/fuerte/stacks/nodelet_core/nodelet/srv_gen/generated;/opt/ros/fuerte/stacks/dynamic_reconfigure/msg_gen/generated;/opt/ros/fuerte/stacks/dynamic_reconfigure/srv_gen/generated;/opt/ros/fuerte/stacks/navigation/costmap_2d/msg_gen/generated;/opt/ros/fuerte/stacks/navigation/base_local_planner/msg_gen/generated;/opt/ros/fuerte/stacks/navigation/navfn/srv_gen/generated
 pioneer_2dnav_temp:INTERNAL=-Wl,-rpath,/opt/ros/fuerte/stacks/navigation/move_base/lib;-Wl,-rpath,/opt/ros/fuerte/share/actionlib/lib;-Wl,-rpath,/opt/ros/fuerte/stacks/pluginlib/lib;-Wl,-rpath,/opt/ros/fuerte/stacks/navigation/costmap_2d/lib;-Wl,-rpath,/opt/ros/fuerte/stacks/laser_pipeline/laser_geometry/lib;-Wl,-rpath,/opt/ros/fuerte/stacks/geometry/tf/lib;-Wl,-rpath,/opt/ros/fuerte/stacks/bullet/lib;-Wl,-rpath,/opt/ros/fuerte/stacks/navigation/voxel_grid/lib;-Wl,-rpath,/opt/ros/fuerte/stacks/navigation/map_server/lib;-Wl,-rpath,/opt/ros/fuerte/stacks/perception_pcl/pcl_ros/lib;-Wl,-rpath,/opt/ros/fuerte/stacks/nodelet_core/nodelet/lib;-Wl,-rpath,/opt/ros/fuerte/stacks/bond_core/bondcpp/lib;-Wl,-rpath,/opt/ros/fuerte/stacks/dynamic_reconfigure/lib;-Wl,-rpath,/opt/ros/fuerte/stacks/navigation/base_local_planner/lib;-Wl,-rpath,/opt/ros/fuerte/stacks/navigation/navfn/lib;-Wl,-rpath,/opt/ros/fuerte/stacks/navigation/clear_costmap_recovery/lib;-Wl,-rpath,/opt/ros/fuerte/stacks/navigation/rotate_recovery/lib
 roscpp_CMAKE:INTERNAL=/opt/ros/fuerte/share/roscpp/rosbuild/roscpp.cmake
+rosjava_jni_CMAKE:INTERNAL=/opt/ros/fuerte/stacks/client_rosjava_jni/rosjava_jni/cmake/rosjava.cmake;/opt/ros/fuerte/share/roscpp/rosbuild/roscpp.cmake
 roslib_path:INTERNAL=/opt/ros/fuerte/share/roslib
 roslisp_CMAKE:INTERNAL=/opt/ros/fuerte/share/roslisp/rosbuild/roslisp.cmake
 rospy_CMAKE:INTERNAL=/opt/ros/fuerte/share/rospy/rosbuild/rospy.cmake
