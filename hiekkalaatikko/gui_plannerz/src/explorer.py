@@ -5,7 +5,7 @@ MUST check is it 0 or 100 the value given from laser when contains something.
 # Explorer contains a binary array (1 = checked point) of the same size than map servers map.
 class Explorer:
 
-    def __init__(self):
+    def __init__(self, parent):
         self.parent = parent
         self.angle = 55 # angle in where camera can detect pirates ni degrees
         self.distance = 1.5 # distance where camera can detect pirates in meters
