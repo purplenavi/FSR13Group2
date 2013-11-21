@@ -23,6 +23,8 @@ from move_base_msgs.msg import MoveBaseAction, MoveBaseGoal
 #from ride_msgs.msg import RideNotification, RidePose
 import actionlib
 from actionlib_msgs.msg import GoalStatus
+#Explorer (under robomap)
+import explorer
 
 class Widgetti(QWidget):
 
@@ -32,8 +34,7 @@ class Widgetti(QWidget):
         self.button_layout = QHBoxLayout()
         self.map_layout = QHBoxLayout()
         self.tf = tf.TransformListener()
-
-        
+       
 
         self.setWindowTitle('Gui plannerz lol')
         self.drive = QPushButton('Removed driving lol!')
@@ -206,6 +207,7 @@ class RoboMap(QGraphicsView):
         self.scene = QGraphicsScene()
         self.subscriber = rospy.Subscriber(topic, OccupancyGrid, self.callback)
         self.setScene(self.scene)
+        self.explorer = None
         self.timer = None
     
     def update(self):
@@ -263,7 +265,12 @@ class RoboMap(QGraphicsView):
         self.map = img
         self.setSceneRect(0, 0, self.w, self.h)
         self.map_change.emit()
-    
+        # Creating the explorer on first callback
+        if self.explorer is None:
+            self.explorer = new Explorer(parent=self)
+        # Using reshaped data for updating the obstacles and walls
+        self.explorer.laser_callback(arr)
+
     def get_plan(self):
         if self.polygon and self.resolution:
             porygon = self.polygon.polygon()
