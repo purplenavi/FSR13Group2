@@ -8,7 +8,8 @@ class Explorer:
     def __init__(self, parent):
         self.parent = parent
         self.angle = 55 # angle in where camera can detect pirates ni degrees
-        self.distance = 1.5 # distance where camera can detect pirates in meters
+        self.min_distance = 0.2 # minimum distance where camera can detect pirates in meters
+        self.max_distance = 1.5 # maximum distance where camera can detect pirates in meters
         self.map = np.zeros((self.parent.h,self.parent.w)) # same size as map
         # Origin of the robot is self.parent.origin straighly (x,y)
 
