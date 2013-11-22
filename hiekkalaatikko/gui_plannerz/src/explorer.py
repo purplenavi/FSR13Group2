@@ -20,6 +20,7 @@ class Explorer:
     # Method for detector callbacks (pcl)
     def detector_callback(self, data):
         # Jussi's job
+	pass
 
     def get_next_point(self):
         unexplored = np.where(A == 0) # Giving the indexes of map containing the zeros

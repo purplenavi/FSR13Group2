@@ -24,7 +24,7 @@ from move_base_msgs.msg import MoveBaseAction, MoveBaseGoal
 import actionlib
 from actionlib_msgs.msg import GoalStatus
 #Explorer (under robomap)
-import explorer
+from explorer import Explorer
 
 class Widgetti(QWidget):
 
@@ -267,7 +267,7 @@ class RoboMap(QGraphicsView):
         self.map_change.emit()
         # Creating the explorer on first callback
         if self.explorer is None:
-            self.explorer = new Explorer(parent=self)
+            self.explorer = Explorer(parent=self)
         # Using reshaped data for updating the obstacles and walls
         self.explorer.laser_callback(arr)
 
