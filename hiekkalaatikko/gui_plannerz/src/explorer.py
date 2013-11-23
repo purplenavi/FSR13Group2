@@ -2,44 +2,45 @@
 MUST check is it 0 or 100 the value given from laser when contains something.
 """
 
+from nav_msgs.msg import MapMetaData
+from geometry_msgs.msg import PoseStamped, Pose, Point, Quaternion
+from operator import xor
+from tf.transformations import euler_from_quaternion
+
 # Explorer map
 # 0 = unchecked
 # 1 = checked and clear
 # 2 = wall
 class Explorer:
 
-    def __init__(self, parent):
+    def __init__(self, parent, mapinfo):
         self.parent = parent
         self.angle = 55 # angle in where camera can detect pirates ni degrees
         self.min_distance = 0.2 # minimum distance where camera can detect pirates in meters
         self.max_distance = 1.5 # maximum distance where camera can detect pirates in meters
-        self.resolution = 10 # TODO: resolution (how long is a pixel)?
-        self.map = np.zeros((self.parent.h,self.parent.w)) # same size as map
-        # Origin of the robot is self.parent.origin straighly (x,y)
+        self.resolution = mapinfo.  resolution # resolution gotten from MapMetaData (m/cell)
+        self.map = np.zeros((mapinfo.height,mapinfo.width)) # same size as map
+        self.pose = mapinfo.origin # current pose (has point and orientation)
 
     # Method to update map with laser callback data
     def laser_callback(self,reshaped_data):
-        # self.map += reshaped_data # Add or values gotten and reshaped from laser
-        # self.map = np.array(self.map > 50, dtype=int) # Convert to binary
-        
-        # Update map?
-        for y in xrange(parent.h):
-        	for x in xrange(parent.w):
-        		if reshaped_data[y][x] > 50:
-        			self.map[y][x] = 2
-        		elif reshaped_data[y][x] < 50 and self.map[y][x] == 2:
-        			self.map[y][x] = 0
-        
+        # Convert reshaped values gotten from laser to binary
+        laser_data = np.array(reshaped_data > 50, dtype=int)
+        # Points to be cleared to make sure points contain value 2
+        clearpoints = laser_data & np.array(self.map > 0, dtype=int)
+        # Delete existing values from map in poins new laser data's going
+        self.map -= np.multiply(clearpoints,self.map)
+        # Add new laser data points to map as 2
+        self.map += 2 * laser_data   
 
     # Method for detector callbacks (pcl)
     def detector_callback(self, data):
-        # TODO: get position on map
         
         # Robot coordinates on map
-        robotx = 150
-        roboty = 150
-        
-        robotangle = 40
+        robotx = self.pose.point.x #150
+        roboty = self.pose.point.y #150
+
+        robotangle = euler_from_quaternion(self.pose.orientation.x,self.pose.orientation.y) #40
         
         beamangle = robotangle - (self.angle / 2)
         step = 0.5
