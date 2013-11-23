@@ -2,12 +2,11 @@
 import roslib
 roslib.load_manifest('explorer')
 import rospy
-
-from nav_msgs.msg import MapMetaData
+from nav_msgs.msg import MapMetaData,OccupancyGrid
 from geometry_msgs.msg import PoseStamped
+from sensor_msgs.msg import Image
 from operator import xor
 from tf.transformations import euler_from_quaternion
-from move_base_msgs.msg import MoveBaseGoal
 import math
 
 """
@@ -20,22 +19,29 @@ MUST check is it 0 or 100 the value given from laser when contains something.
 # 2 = wall
 class Explorer:
 
-    def __init__(self, parent, mapinfo):
-        self.parent = parent
+    # Actual initialization happens at first laser callback where the current pose, map size and resolution are defined.
+    def __init__(self):
         self.angle = 55 # angle in where camera can detect pirates ni degrees
         self.min_distance = 0.2 # minimum distance where camera can detect pirates in meters
         self.max_distance = 1.5 # maximum distance where camera can detect pirates in meters
-        self.resolution = mapinfo.resolution # resolution gotten from MapMetaData (m/cell)
-        self.map = np.zeros((mapinfo.height,mapinfo.width)) # same size as map
-        self.pose = mapinfo.origin # current pose (position and orientation)
-
-    # Current pose has to be updated on every scan too
-    def update_info(self, mapinfo):
-        self.resolution = mapinfo.resolution # scan resolution gotten from MapMetaData (m/cell)
-        self.pose = mapinfo.origin # current pose (position and orientation)
+        self.resolution = None
+        self.map = None
+        self.pose = None
+        # Subscribers to deal with incoming data
+        self.map_subscriber = rospy.Subscriber('/map', OccupancyGrid, self.laser_callback)
+        self.camera_subscriber = rospy.Subscriber('/camera/rgb/image_mono', Image, self.detector)
+        # Publish goals as PoseStamped, subscriber at task planner ?
+        self.goal_pub = rospy.Publisher('explore_point', PoseStamped)
 
     # Method to update map with laser callback data
-    def laser_callback(self,reshaped_data):
+    def laser_callback(self,msg):
+        self.pose = msg.origin
+        self.resolution = msg.info.resolution
+        if self.map is None:
+            self.map = np.zeros((msg.info.height, msg.info.width))
+            print 'Explorer initialized'
+        reshaped_data = np.array(msg.data, dtype=np.uint8, copy=False, order='C')
+        reshaped_data = reshaped_data.reshape((msg.info.height, msg.info.width))
         # Convert reshaped values gotten from laser to binary
         laser_data = np.array(reshaped_data > 50, dtype=int)
         # Points to be cleared to make sure points contain value 2
@@ -47,7 +53,9 @@ class Explorer:
 
     # Method for detector callbacks (pcl)
     def detector_callback(self, data):
-
+        if self.map is None or self.resolution is None or self.pose is None:
+            print 'Cannot use camera data, explorer not initialized yet'
+            return
         # Robot coordinates on map
         robotx = self.pose.position.x #150
         roboty = self.pose.position.y #150
@@ -85,7 +93,7 @@ class Explorer:
             while i < 1000:
                 i = i + 1
 
-                if not plot(x0, y0):
+                if not self.plot(x0, y0):
                     break
 
                 if x0 == x1 and y0 == y1:
@@ -97,14 +105,14 @@ class Explorer:
                     x0 = x0 + sx
 
                 if x0 = x1 and y0 = y1:
-                    plot(x0,y0)
+                    self.plot(x0,y0)
                     break
 
                 if e2 < dx:
                     err = err + dx
                     y0 = y0 + sy 
 
-    def plot(x, y):
+    def plot(self, x, y):
         if self.map[y][x] == 2:
             # Collided a wall, end drawing
             return False
@@ -115,6 +123,9 @@ class Explorer:
 
 
     def get_next_point(self):
+        if self.map is None or self.pose is None:
+            print 'Cannot get next point, Explorer not initialized yet'
+            return
         unexplored = np.where(self.map == 0) # Giving the indexes of map containing the zeros
         if len(unexplored) == 0:
             print 'Whole map is checked out so the exploring is done!';
@@ -202,6 +213,5 @@ class Explorer:
             goal.pose.position.y = y
             goal.pose.orientation.w = self.pose.orientation.w
             goal.pose.orientation.z = self.pose.orientation.z
-            goal = MoveBaseGoal(target_pose=goal)
-            print 'Next unexplored goal given at ('+str(x)+', '+str(y)+')'
-            return goal
+            print 'Next unexplored goal publish at ('+str(x)+', '+str(y)+')'
+            self.goal_pub.publish(goal)

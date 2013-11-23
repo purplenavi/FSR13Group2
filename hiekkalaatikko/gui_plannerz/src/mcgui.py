@@ -22,8 +22,6 @@ from move_base_msgs.msg import MoveBaseAction, MoveBaseGoal
 #from ride_msgs.msg import RideNotification, RidePose
 import actionlib
 from actionlib_msgs.msg import GoalStatus
-#Explorer (under robomap)
-from explorer import Explorer
 
 class Widgetti(QWidget):
 
@@ -220,7 +218,6 @@ class RoboMap(QGraphicsView):
         self.scene = QGraphicsScene()
         self.subscriber = rospy.Subscriber(topic, OccupancyGrid, self.callback)
         self.setScene(self.scene)
-        self.explorer = None
         self.timer = None
     
     def update(self):
@@ -278,13 +275,6 @@ class RoboMap(QGraphicsView):
         self.map = img
         self.setSceneRect(0, 0, self.w, self.h)
         self.map_change.emit()
-        # Creating the explorer on first callback
-        if self.explorer is None:
-            self.explorer = Explorer(parent=self,resolution=msg.info)
-        # Update map info to explorer
-        self.explorer.update_info(msg.info)
-        # Using reshaped data for updating the obstacles and walls
-        self.explorer.laser_callback(arr)
 
     def get_plan(self):
         if self.polygon and self.resolution:
@@ -386,6 +376,7 @@ class TaskPlanner():
         #self.subscriber = rospy.Subscriber(self.manipulator,upancyGrid, self.manipulatorCb)
         self.manipulator_action = rospy.Publisher(self.manipulator, Vector3, latch=False)
         self.driver = rospy.Publisher(driver_topic, Twist, latch=False)
+        self.explorer_sub = None
         #self.manipulator_state = rospy.Subscriber(self.manipulator, String)
         #self.parent.update_textbox('Task Planner', 'Task planner initialized')
         #print 'Task planner initialized'
@@ -398,6 +389,7 @@ class TaskPlanner():
         if not self.parent.pirates:
             print 'NO PIRATES ASSHOLE!'
             self.parent.pirate_update = True
+            self.explorer_sub = rospy.Subscriber('explore_point', PoseStamped, self.explorer_callback)
         else:
             print 'executing task'
             while True:
@@ -429,7 +421,11 @@ class TaskPlanner():
                         print 'State 4 woohoo!'
                 else:
                     pass
-                
+
+    def explorer_callback(self,data):
+        self.goToLocation(data.pose.position.x,data.pose.position.y)
+        self.explorer_sub = None
+
     def move_to_pirate(self):
         self.move_goal = MoveBaseGoal(target_pose=self.parent.pirates.pop())
         self.parent.actionclient.send_goal(self.move_goal, feedback_cb=self.parent.feedback)
