@@ -15,6 +15,7 @@ from nav_msgs.msg import Odometry
 from std_msgs.msg import String
 from cv_bridge import CvBridge, CvBridgeError
 from sensor_msgs.msg import Image, PointCloud2, PointField
+from std_msgs.msg import String
 import os
 import sys
 import cv
@@ -119,6 +120,7 @@ class Widgetti(QWidget):
             #notification.msg = "Movement Cancelled"
         elif status is GoalStatus.SUCCEEDED:
             print 'success'
+            self.taskplanner.explorer_pub = rospy.Publisher('explore_next_point', String, latch=False)
             #notification.level = RideNotification.INFO
             #notification.msg = "Movement Complete!"
             #self.update_textbox('Goal Status' ,'SUCCEEDED')
@@ -159,6 +161,7 @@ class Widgetti(QWidget):
             print 'Moving to next state from ' + str(self.taskplanner.state)
             self.taskplanner.state = self.taskplanner.state + 1
             self.waiting = False
+            self.taskplanner.explorer_pub = rospy.Publisher('explore_next_point', String, latch=False)
             
     def distance(self, t1, t2):
         """
@@ -376,7 +379,8 @@ class TaskPlanner():
         #self.subscriber = rospy.Subscriber(self.manipulator,upancyGrid, self.manipulatorCb)
         self.manipulator_action = rospy.Publisher(self.manipulator, Vector3, latch=False)
         self.driver = rospy.Publisher(driver_topic, Twist, latch=False)
-        self.explorer_sub = None
+        self.explorer_sub = rospy.Subscriber('/explore_point', PoseStamped, self.explorer_callback)
+        self.explorer_pub = rospy.Publisher('explore_next_point', String, latch=False)
         #self.manipulator_state = rospy.Subscriber(self.manipulator, String)
         #self.parent.update_textbox('Task Planner', 'Task planner initialized')
         #print 'Task planner initialized'
@@ -389,7 +393,9 @@ class TaskPlanner():
         if not self.parent.pirates:
             print 'NO PIRATES ASSHOLE!'
             self.parent.pirate_update = True
-            self.explorer_sub = rospy.Subscriber('explore_point', PoseStamped, self.explorer_callback)
+            explorer_pub.publish('Gimme sum coordinates, mate')
+            # Trying with just one movement, reassigned when action movement succeeded (done_callback or feedback)
+            explorer_pub = None
         else:
             print 'executing task'
             while True:
@@ -424,7 +430,6 @@ class TaskPlanner():
 
     def explorer_callback(self,data):
         self.goToLocation(data.pose.position.x,data.pose.position.y)
-        self.explorer_sub = None
 
     def move_to_pirate(self):
         self.move_goal = MoveBaseGoal(target_pose=self.parent.pirates.pop())

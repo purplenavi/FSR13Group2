@@ -5,7 +5,7 @@ import rospy
 from nav_msgs.msg import MapMetaData,OccupancyGrid
 from geometry_msgs.msg import PoseStamped
 from sensor_msgs.msg import Image
-from operator import xor
+from std_msgs.msg import String
 from tf.transformations import euler_from_quaternion
 import math
 
@@ -32,6 +32,7 @@ class Explorer:
         self.camera_subscriber = rospy.Subscriber('/camera/rgb/image_mono', Image, self.detector)
         # Publish goals as PoseStamped, subscriber at task planner ?
         self.goal_pub = rospy.Publisher('explore_point', PoseStamped)
+        self.get_goal_sub = rospy.Subscriber('/explore_next_point', String, self.get_next_point)
 
     # Method to update map with laser callback data
     def laser_callback(self,msg):
@@ -49,7 +50,7 @@ class Explorer:
         # Delete existing values from map in poins new laser data's going
         self.map -= np.multiply(clearpoints,self.map)
         # Add new laser data points to map as 2
-        self.map += 2 * laser_data   
+        self.map += 2 * laser_data
 
     # Method for detector callbacks (pcl)
     def detector_callback(self, data):
@@ -60,7 +61,7 @@ class Explorer:
         robotx = self.pose.position.x #150
         roboty = self.pose.position.y #150
 
-        robotangle = euler_from_quaternion(self.pose.orientation.x,self.pose.orientation.y) #40
+        (roll, pitch, robotangle) = euler_from_quaternion([self.pose.orientation.x, self.pose.orientation.y, self.pose.orientation.z, self.pose.orientation.w]) #40
 
         beamangle = robotangle - (self.angle / 2)
         step = 0.5
@@ -122,10 +123,12 @@ class Explorer:
         return True
 
 
-    def get_next_point(self):
+    def get_next_point(self, msg):
         if self.map is None or self.pose is None:
             print 'Cannot get next point, Explorer not initialized yet'
             return
+        # There's no reason for me to do anything with the msg, wadap...
+        print 'Wow! I just got a message from task planner: '+msg
         unexplored = np.where(self.map == 0) # Giving the indexes of map containing the zeros
         if len(unexplored) == 0:
             print 'Whole map is checked out so the exploring is done!';
