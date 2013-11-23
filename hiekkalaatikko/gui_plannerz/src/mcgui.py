@@ -280,7 +280,9 @@ class RoboMap(QGraphicsView):
         self.map_change.emit()
         # Creating the explorer on first callback
         if self.explorer is None:
-            self.explorer = Explorer(parent=self)
+            self.explorer = Explorer(parent=self,resolution=msg.info)
+        # Update map info to explorer
+        self.explorer.update_info(msg.info)
         # Using reshaped data for updating the obstacles and walls
         self.explorer.laser_callback(arr)
 
