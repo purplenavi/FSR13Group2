@@ -146,8 +146,8 @@ CMAKE_SKIP_RPATH:BOOL=NO
 //Path to a program.
 CMAKE_STRIP:FILEPATH=/usr/bin/strip
 
-//The CMake toolchain file
-CMAKE_TOOLCHAIN_FILE:FILEPATH=/opt/ros/fuerte/share/ros/core/rosbuild/rostoolchain.cmake
+//No help, variable specified on the command line.
+CMAKE_TOOLCHAIN_FILE:UNINITIALIZED=/opt/ros/fuerte/share/ros/core/rosbuild/rostoolchain.cmake
 
 //If true, cmake will use relative paths in makefiles and projects.
 CMAKE_USE_RELATIVE_PATHS:BOOL=OFF
@@ -163,6 +163,21 @@ EXECUTABLE_OUTPUT_PATH:PATH=
 
 //gtest-config executable
 GTEST_EXE:FILEPATH=GTEST_EXE-NOTFOUND
+
+//Path to a program.
+Java_JAR_EXECUTABLE:FILEPATH=/usr/bin/jar
+
+//Path to a program.
+Java_JAVAC_EXECUTABLE:FILEPATH=/usr/bin/javac
+
+//Path to a program.
+Java_JAVADOC_EXECUTABLE:FILEPATH=/usr/bin/javadoc
+
+//Path to a program.
+Java_JAVAH_EXECUTABLE:FILEPATH=/usr/bin/javah
+
+//Path to a program.
+Java_JAVA_EXECUTABLE:FILEPATH=/usr/bin/java
 
 //Single output directory for building all libraries.
 LIBRARY_OUTPUT_PATH:PATH=
@@ -187,6 +202,9 @@ TOOLCHAINCONFIG:FILEPATH=TOOLCHAINCONFIG-NOTFOUND
 
 //Path to a file.
 USERCONFIG:FILEPATH=USERCONFIG-NOTFOUND
+
+//Path to a file.
+_file_name:FILEPATH=//home/group2/fuerte_workspace/fsr2013/hiekkalaatikko/pirate_detector/src/pirate_detector.py
 
 //Value Computed by CMake
 pirate_detector_BINARY_DIR:STATIC=/home/group2/fuerte_workspace/fsr2013/hiekkalaatikko/pirate_detector/build
@@ -323,24 +341,37 @@ CMAKE_UNAME:INTERNAL=/bin/uname
 CMAKE_USE_RELATIVE_PATHS-ADVANCED:INTERNAL=1
 //ADVANCED property for variable: CMAKE_VERBOSE_MAKEFILE
 CMAKE_VERBOSE_MAKEFILE-ADVANCED:INTERNAL=1
+//Details about finding Java
+FIND_PACKAGE_MESSAGE_DETAILS_Java:INTERNAL=[/usr/bin/java][/usr/bin/jar][/usr/bin/javac][/usr/bin/javah][/usr/bin/javadoc][v1.6.0.27()]
 //Details about finding PythonInterp
 FIND_PACKAGE_MESSAGE_DETAILS_PythonInterp:INTERNAL=[/usr/bin/python][v2.7.3()]
+//ADVANCED property for variable: Java_JAR_EXECUTABLE
+Java_JAR_EXECUTABLE-ADVANCED:INTERNAL=1
+//ADVANCED property for variable: Java_JAVAC_EXECUTABLE
+Java_JAVAC_EXECUTABLE-ADVANCED:INTERNAL=1
+//ADVANCED property for variable: Java_JAVADOC_EXECUTABLE
+Java_JAVADOC_EXECUTABLE-ADVANCED:INTERNAL=1
+//ADVANCED property for variable: Java_JAVAH_EXECUTABLE
+Java_JAVAH_EXECUTABLE-ADVANCED:INTERNAL=1
+//ADVANCED property for variable: Java_JAVA_EXECUTABLE
+Java_JAVA_EXECUTABLE-ADVANCED:INTERNAL=1
 //ADVANCED property for variable: PYTHON_EXECUTABLE
 PYTHON_EXECUTABLE-ADVANCED:INTERNAL=1
 _rosbuild_EXPORTS:INTERNAL=
-_rosbuild_cached_flag_time:INTERNAL=1383749795.09
-_roslang_LANGS:INTERNAL=roscpp;rospy;roslisp
-_rospack_deps_manifests_invoke_result:INTERNAL=/opt/ros/fuerte/share/roslang/manifest.xml;/opt/ros/fuerte/share/rospy/manifest.xml;/opt/ros/fuerte/share/geometry_msgs/manifest.xml;/opt/ros/fuerte/share/sensor_msgs/manifest.xml;/opt/ros/fuerte/stacks/vision_opencv/opencv2/manifest.xml;/opt/ros/fuerte/share/roscpp/manifest.xml;/opt/ros/fuerte/stacks/vision_opencv/cv_bridge/manifest.xml
-_rospack_msgsrv_gen_invoke_result:INTERNAL=
-pirate_detector_CFLAGS_OTHER:INTERNAL=
+_rosbuild_cached_flag_time:INTERNAL=1385198161.4
+_roslang_LANGS:INTERNAL=rosjava_jni;roscpp;rospy;roslisp
+_rospack_deps_manifests_invoke_result:INTERNAL=/opt/ros/fuerte/share/roslang/manifest.xml;/opt/ros/fuerte/share/rospy/manifest.xml;/opt/ros/fuerte/stacks/bullet/manifest.xml;/opt/ros/fuerte/share/geometry_msgs/manifest.xml;/opt/ros/fuerte/share/sensor_msgs/manifest.xml;/opt/ros/fuerte/share/roscpp/manifest.xml;/opt/ros/fuerte/share/rosconsole/manifest.xml;/opt/ros/fuerte/stacks/geometry/angles/manifest.xml;/opt/ros/fuerte/share/rostest/manifest.xml;/opt/ros/fuerte/share/roswtf/manifest.xml;/opt/ros/fuerte/share/message_filters/manifest.xml;/opt/ros/fuerte/stacks/geometry/tf/manifest.xml;/opt/ros/fuerte/share/nav_msgs/manifest.xml;/opt/ros/fuerte/stacks/vision_opencv/opencv2/manifest.xml;/opt/ros/fuerte/stacks/vision_opencv/cv_bridge/manifest.xml;/opt/ros/fuerte/share/roslib/manifest.xml;/opt/ros/fuerte/share/std_msgs/manifest.xml;/opt/ros/fuerte/share/actionlib_msgs/manifest.xml;/opt/ros/fuerte/stacks/navigation/move_base_msgs/manifest.xml
+_rospack_msgsrv_gen_invoke_result:INTERNAL=/opt/ros/fuerte/stacks/geometry/tf/msg_gen/generated;/opt/ros/fuerte/stacks/geometry/tf/srv_gen/generated;/opt/ros/fuerte/stacks/navigation/move_base_msgs/msg_gen/generated
+pirate_detector_CFLAGS_OTHER:INTERNAL=-DBT_USE_DOUBLE_PRECISION -DBT_EULER_DEFAULT_ZYX
 pirate_detector_INCLUDEDIR:INTERNAL=
-pirate_detector_INCLUDE_DIRS:INTERNAL=/opt/ros/fuerte/include;/opt/ros/fuerte/include/opencv;/opt/ros/fuerte/stacks/vision_opencv/cv_bridge/include
-pirate_detector_LDFLAGS_OTHER:INTERNAL=-Wl,-rpath,/opt/ros/fuerte/stacks/vision_opencv/cv_bridge/lib
-pirate_detector_LIBRARIES:INTERNAL=opencv_calib3d;opencv_contrib;opencv_core;opencv_features2d;opencv_flann;opencv_gpu;opencv_highgui;opencv_imgproc;opencv_legacy;opencv_ml;opencv_nonfree;opencv_objdetect;opencv_photo;opencv_stitching;opencv_ts;opencv_video;opencv_videostab;cv_bridge;roscpp;rostime;rosconsole;roscpp_serialization;xmlrpcpp
-pirate_detector_LIBRARY_DIRS:INTERNAL=/opt/ros/fuerte/lib;/opt/ros/fuerte/stacks/vision_opencv/cv_bridge/lib
-pirate_detector_cached_manifest_list:INTERNAL=/home/group2/fuerte_workspace/fsr2013/hiekkalaatikko/pirate_detector/manifest.xml;/opt/ros/fuerte/share/roslang/manifest.xml;/opt/ros/fuerte/share/rospy/manifest.xml;/opt/ros/fuerte/share/geometry_msgs/manifest.xml;/opt/ros/fuerte/share/sensor_msgs/manifest.xml;/opt/ros/fuerte/stacks/vision_opencv/opencv2/manifest.xml;/opt/ros/fuerte/share/roscpp/manifest.xml;/opt/ros/fuerte/stacks/vision_opencv/cv_bridge/manifest.xml
-pirate_detector_temp:INTERNAL=-Wl,-rpath,/opt/ros/fuerte/stacks/vision_opencv/cv_bridge/lib
+pirate_detector_INCLUDE_DIRS:INTERNAL=/opt/ros/fuerte/stacks/geometry/tf/include;/opt/ros/fuerte/stacks/geometry/tf/msg_gen/cpp/include;/opt/ros/fuerte/stacks/geometry/tf/srv_gen/cpp/include;/opt/ros/fuerte/stacks/bullet/include;/opt/ros/fuerte/include;/opt/ros/fuerte/stacks/geometry/angles/include;/opt/ros/fuerte/include/opencv;/opt/ros/fuerte/stacks/vision_opencv/cv_bridge/include;/opt/ros/fuerte/stacks/navigation/move_base_msgs/msg_gen/cpp/include
+pirate_detector_LDFLAGS_OTHER:INTERNAL=-Wl,-rpath,/opt/ros/fuerte/stacks/geometry/tf/lib -Wl,-rpath,/opt/ros/fuerte/stacks/bullet/lib -Wl,-rpath,/opt/ros/fuerte/stacks/vision_opencv/cv_bridge/lib
+pirate_detector_LIBRARIES:INTERNAL=tf;boost_thread-mt;BulletDynamics;BulletCollision;LinearMath;message_filters;roscpp;rostime;rosconsole;roscpp_serialization;xmlrpcpp;cv_bridge;opencv_calib3d;opencv_contrib;opencv_core;opencv_features2d;opencv_flann;opencv_gpu;opencv_highgui;opencv_imgproc;opencv_legacy;opencv_ml;opencv_nonfree;opencv_objdetect;opencv_photo;opencv_stitching;opencv_ts;opencv_video;opencv_videostab;roslib
+pirate_detector_LIBRARY_DIRS:INTERNAL=/opt/ros/fuerte/stacks/geometry/tf/lib;/opt/ros/fuerte/stacks/bullet/lib;/opt/ros/fuerte/lib;/opt/ros/fuerte/stacks/vision_opencv/cv_bridge/lib
+pirate_detector_cached_manifest_list:INTERNAL=/home/group2/fuerte_workspace/fsr2013/hiekkalaatikko/pirate_detector/manifest.xml;/opt/ros/fuerte/share/roslang/manifest.xml;/opt/ros/fuerte/share/rospy/manifest.xml;/opt/ros/fuerte/stacks/bullet/manifest.xml;/opt/ros/fuerte/share/geometry_msgs/manifest.xml;/opt/ros/fuerte/share/sensor_msgs/manifest.xml;/opt/ros/fuerte/share/roscpp/manifest.xml;/opt/ros/fuerte/share/rosconsole/manifest.xml;/opt/ros/fuerte/stacks/geometry/angles/manifest.xml;/opt/ros/fuerte/share/rostest/manifest.xml;/opt/ros/fuerte/share/roswtf/manifest.xml;/opt/ros/fuerte/share/message_filters/manifest.xml;/opt/ros/fuerte/stacks/geometry/tf/manifest.xml;/opt/ros/fuerte/share/nav_msgs/manifest.xml;/opt/ros/fuerte/stacks/vision_opencv/opencv2/manifest.xml;/opt/ros/fuerte/stacks/vision_opencv/cv_bridge/manifest.xml;/opt/ros/fuerte/share/roslib/manifest.xml;/opt/ros/fuerte/share/std_msgs/manifest.xml;/opt/ros/fuerte/share/actionlib_msgs/manifest.xml;/opt/ros/fuerte/stacks/navigation/move_base_msgs/manifest.xml;/opt/ros/fuerte/stacks/geometry/tf/msg_gen/generated;/opt/ros/fuerte/stacks/geometry/tf/srv_gen/generated;/opt/ros/fuerte/stacks/navigation/move_base_msgs/msg_gen/generated
+pirate_detector_temp:INTERNAL=-Wl,-rpath,/opt/ros/fuerte/stacks/geometry/tf/lib;-Wl,-rpath,/opt/ros/fuerte/stacks/bullet/lib;-Wl,-rpath,/opt/ros/fuerte/stacks/vision_opencv/cv_bridge/lib
 roscpp_CMAKE:INTERNAL=/opt/ros/fuerte/share/roscpp/rosbuild/roscpp.cmake
+rosjava_jni_CMAKE:INTERNAL=/opt/ros/fuerte/stacks/client_rosjava_jni/rosjava_jni/cmake/rosjava.cmake;/opt/ros/fuerte/share/roscpp/rosbuild/roscpp.cmake
 roslib_path:INTERNAL=/opt/ros/fuerte/share/roslib
 roslisp_CMAKE:INTERNAL=/opt/ros/fuerte/share/roslisp/rosbuild/roslisp.cmake
 rospy_CMAKE:INTERNAL=/opt/ros/fuerte/share/rospy/rosbuild/rospy.cmake

@@ -11,9 +11,17 @@ SET(CMAKE_FORCE_UNIX_PATHS 1)
 # The C and CXX include file search paths:
 SET(CMAKE_C_INCLUDE_PATH
   "../include"
+  "/opt/ros/fuerte/stacks/geometry/tf/include"
+  "/opt/ros/fuerte/stacks/geometry/tf/msg_gen/cpp/include"
+  "/opt/ros/fuerte/stacks/geometry/tf/srv_gen/cpp/include"
+  "/opt/ros/fuerte/stacks/bullet/include"
   "/opt/ros/fuerte/include"
+  "/opt/ros/fuerte/stacks/geometry/angles/include"
   "/opt/ros/fuerte/include/opencv"
   "/opt/ros/fuerte/stacks/vision_opencv/cv_bridge/include"
+  "/opt/ros/fuerte/stacks/navigation/move_base_msgs/msg_gen/cpp/include"
+  "../msg_gen/cpp/include"
+  "../srv_gen/cpp/include"
   )
 SET(CMAKE_CXX_INCLUDE_PATH ${CMAKE_C_INCLUDE_PATH})
 SET(CMAKE_Fortran_INCLUDE_PATH ${CMAKE_C_INCLUDE_PATH})

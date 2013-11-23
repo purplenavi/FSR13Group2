@@ -6,8 +6,10 @@
 /home/group2/fuerte_workspace/fsr2013/hiekkalaatikko/pirate_detector/build/CMakeFiles/rosbuild_precompile.dir
 /home/group2/fuerte_workspace/fsr2013/hiekkalaatikko/pirate_detector/build/CMakeFiles/rosbuild_premsgsrvgen.dir
 /home/group2/fuerte_workspace/fsr2013/hiekkalaatikko/pirate_detector/build/CMakeFiles/rospack_genmsg.dir
+/home/group2/fuerte_workspace/fsr2013/hiekkalaatikko/pirate_detector/build/CMakeFiles/rospack_genmsg_all.dir
 /home/group2/fuerte_workspace/fsr2013/hiekkalaatikko/pirate_detector/build/CMakeFiles/rospack_genmsg_libexe.dir
 /home/group2/fuerte_workspace/fsr2013/hiekkalaatikko/pirate_detector/build/CMakeFiles/rospack_gensrv.dir
+/home/group2/fuerte_workspace/fsr2013/hiekkalaatikko/pirate_detector/build/CMakeFiles/rospack_gensrv_all.dir
 /home/group2/fuerte_workspace/fsr2013/hiekkalaatikko/pirate_detector/build/CMakeFiles/test.dir
 /home/group2/fuerte_workspace/fsr2013/hiekkalaatikko/pirate_detector/build/CMakeFiles/test-future.dir
 /home/group2/fuerte_workspace/fsr2013/hiekkalaatikko/pirate_detector/build/CMakeFiles/test-results.dir

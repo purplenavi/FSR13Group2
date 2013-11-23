@@ -27,7 +27,8 @@
                             
         <!-- Parameters for move_base itself, Documentation: http://wiki.ros.org/move_base -->
         <!-- Start recovery behaviour if the robot hasn't moved further than 0.3m in 5s -->
-        <param name="oscillation_timeout" type="double" value="5" />
+        <param name="oscillation_timeout" type="double" value="10.0" />
+        <param name="planner_patience" type="double" value="10.0" />
         <param name="oscillation_distance" type="double" value="0.3" />
     </node>
 
