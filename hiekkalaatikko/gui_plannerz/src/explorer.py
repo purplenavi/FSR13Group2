@@ -150,7 +150,7 @@ class Explorer:
                 mindist = it
             weightmap[y][x] = mindist
         # Get maximum valued point that ain't behind wall (no 2 in map in the path)
-        new_points = np.where(weightmap==weightmap,max()):
+        new_points = np.where(weightmap==weightmap.max()):
         x = None
         y = None
         while weightmap.max() > 0 and len(new_points) > 0:
