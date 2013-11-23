@@ -47,71 +47,71 @@ class Explorer:
 
     # Method for detector callbacks (pcl)
     def detector_callback(self, data):
-        
+
         # Robot coordinates on map
         robotx = self.pose.position.x #150
         roboty = self.pose.position.y #150
 
         robotangle = euler_from_quaternion(self.pose.orientation.x,self.pose.orientation.y) #40
-        
+
         beamangle = robotangle - (self.angle / 2)
         step = 0.5
-        
+
         # Mark area checked
         for a in xrange(self.angle / step):
-        	targetangle = math.radians(beamangle + a * step)
-        	
-        	# Mark both ends of line
-        	x0 = robotx + self.min_distance * self.resolution * math.cos(targetangle)
-        	y0 = roboty + self.min_distance * self.resolution * math.sin(targetangle)
-        	
-        	x1 = robotx + self.max_distance * self.resolution * math.cos(targetangle)
-        	y1 = roboty + self.max_distance * self.resolution * math.sin(targetangle)
-             
+            targetangle = math.radians(beamangle + a * step)
+
+            # Mark both ends of line
+            x0 = robotx + self.min_distance * self.resolution * math.cos(targetangle)
+            y0 = roboty + self.min_distance * self.resolution * math.sin(targetangle)
+
+            x1 = robotx + self.max_distance * self.resolution * math.cos(targetangle)
+            y1 = roboty + self.max_distance * self.resolution * math.sin(targetangle)
+
             # Line drawing algorithm
             dx = math.abs(x1 - x0)
-   			dy = math.abs(y1 - y0)
-   			sx = -1
-   			sy = -1
-   			if x0 < x1:
-   				sx = 1
-   			 	
-   			if y0 < y1:
-   				sy = 1
+            dy = math.abs(y1 - y0)
+            sx = -1
+            sy = -1
+            if x0 < x1:
+                sx = 1
 
-    		err = dx - dy
- 
- 			i = 0
-   			while i < 1000:
-   			 	i = i + 1
-     		 
-     		 	if not plot(x0, y0):
-     		 		break
-     		 
-     		 	if x0 == x1 and y0 == y1:
-     		 		break
-     		 		
-     		 	e2 = 2 * err
-     			if e2 > -dy: 
-       				err = err - dy
-       				x0 = x0 + sx
+            if y0 < y1:
+                sy = 1
 
-     			if x0 = x1 and y0 = y1:
-       				plot(x0,y0)
-       				break
+            err = dx - dy
 
-     			if e2 < dx:
-       				err = err + dx
-       				y0 = y0 + sy 
+            i = 0
+            while i < 1000:
+                i = i + 1
 
-	def plot(x, y):
-		if self.map[y][x] == 2:
-         	# Collided a wall, end drawing
-         	return False
-         			
-         # Draw
-         self.map[y][x] = 1
-         return True
+                if not plot(x0, y0):
+                    break
+
+                if x0 == x1 and y0 == y1:
+                    break
+                      
+                e2 = 2 * err
+                if e2 > -dy: 
+                    err = err - dy
+                    x0 = x0 + sx
+
+                if x0 = x1 and y0 = y1:
+                    plot(x0,y0)
+                    break
+
+                if e2 < dx:
+                    err = err + dx
+                    y0 = y0 + sy 
+
+    def plot(x, y):
+        if self.map[y][x] == 2:
+            # Collided a wall, end drawing
+            return False
+
+        # Draw
+        self.map[y][x] = 1
+        return True
 
 
     def get_next_point(self):
@@ -133,7 +133,7 @@ class Explorer:
             if mindist > it:
                 mindist = it
             it = 1
-            while it < mindist and y-it > 0:
+            while y > 0 and it < mindist and y-it >= 0:
                 if self.map[y-it][x] > 0:
                     break
                 it += 1
@@ -147,14 +147,14 @@ class Explorer:
             if mindist > it:
                 mindist = it
             it = 1
-            while it < mindist and x-it > 0:
+            while it < mindist and x-it >= 0:
                 if self.map[y][x-it] > 0:
                     break
                 it += 1
             if mindist < it:
                 mindist = it
             weightmap[y][x] = mindist
-        # Get maximum valued point that ain't behind wall (no 2 in map in the path)
+        # Get maximum valued point that ain't behind wall (no 2 in map in direct path)
         new_points = np.where(weightmap==weightmap.max()):
         x = None
         y = None
