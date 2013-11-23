@@ -1,0 +1,19 @@
+<package>
+  <description brief="explorer">
+
+     explorer
+
+  </description>
+  <author>Miikka Eloranta</author>
+  <license>BSD</license>
+  <review status="unreviewed" notes=""/>
+  <url>http://ros.org/wiki/explorer</url>
+  <depend package="rospy"/>
+  <depend package="nav_msgs"/>
+  <depend package="geometry_msgs"/>
+  <depend package="move_base_msgs"/>
+  <depend package="sensor_msgs"/>
+
+</package>
+
+
