@@ -120,7 +120,8 @@ class Widgetti(QWidget):
             #notification.msg = "Movement Cancelled"
         elif status is GoalStatus.SUCCEEDED:
             print 'success'
-            self.taskplanner.explorer_pub = rospy.Publisher('explore_next_point', String, latch=False)
+            self.taskplanner.state += 1
+            #self.taskplanner.explorer_pub = rospy.Publisher('explore_next_point', String, latch=False)
             #notification.level = RideNotification.INFO
             #notification.msg = "Movement Complete!"
             #self.update_textbox('Goal Status' ,'SUCCEEDED')
@@ -137,6 +138,7 @@ class Widgetti(QWidget):
             #notification.msg = "Movement Aborted!"
         else:
             print 'sumthing else'
+            print status
             #self.update_textbox('Goal Status', 'WTF? something else')
             #notification.level = RideNotification.DEBUG
             #notification.msg = "[GoTo] Odd Completion"
@@ -386,6 +388,7 @@ class TaskPlanner():
         #print 'Task planner initialized'
         rospy.sleep(1.0)
         self.home = [0, 0]
+        self.exit = False
         
         self.openManipulator() # To ensure it's all the way opened
 
@@ -393,12 +396,15 @@ class TaskPlanner():
         if not self.parent.pirates:
             print 'NO PIRATES ASSHOLE!'
             self.parent.pirate_update = True
-            explorer_pub.publish('Gimme sum coordinates, mate')
+            self.explorer_pub.publish('Gimme sum coordinates, mate')
             # Trying with just one movement, reassigned when action movement succeeded (done_callback or feedback)
             explorer_pub = None
+            self.exit = False
         else:
             print 'executing task'
             while True:
+                if self.exit:
+                    break
                 if not self.parent.waiting:
                     self.parent.update_textbox('Current state',str(self.state))
                     if self.state == 0:
@@ -420,11 +426,14 @@ class TaskPlanner():
                         
                     elif self.state == 3:
                         print 'dropping'
+                        self.parent.waiting = True
                         self.drop_figure()
                         rospy.sleep(2.0)
+                        if not self.parent.pirates:
+                            self.exit = True
                     
                     elif self.state == 4:
-                        print 'State 4 woohoo!'
+                        print 'State 4 what the nigger?!'
                 else:
                     pass
 
@@ -433,7 +442,8 @@ class TaskPlanner():
 
     def move_to_pirate(self):
         self.move_goal = MoveBaseGoal(target_pose=self.parent.pirates.pop())
-        self.parent.actionclient.send_goal(self.move_goal, feedback_cb=self.parent.feedback)
+        print 'Pirate at: ' + str(self.move_goal)
+        self.parent.actionclient.send_goal(self.move_goal, done_cb = self.parent.done_callback, feedback_cb=self.parent.feedback)
 
     def manipulatorCb(self, msg):
         self.parent.update_textbox('Manipulator subscription',msg)
@@ -449,27 +459,29 @@ class TaskPlanner():
         location.pose.orientation.z = self.parent.pose.pose.pose.orientation.z
         location = MoveBaseGoal(target_pose=location)
         print 'Sending home goal'
-        self.parent.actionclient.send_goal(location, feedback_cb=self.parent.feedback)
+        self.parent.actionclient.send_goal(location, done_cb = self.parent.done_callback, feedback_cb=self.parent.feedback)
         
     def grab_figure(self):
         self.closeManipulator()
         # Closing
         rospy.sleep(0.5)
-        print 'REVERSING LOL'
-        reverse_pose = self.parent.pose
-        reverse_pose.pose.pose.position.x -= 0.2
-        self.reverse()
-        while self.parent.waiting:
-            if self.reverse_feedback(self.parent.pose, reverse_pose) < 0.1:
-                self.parent.update_textbox('Reversing done','Yay!')
-                self.state += 1
-                self.parent.waiting = False
+        self.state += 1
+        self.parent.waiting = False
 
     def drop_figure(self):
         self.openManipulator()
         # Opening
         rospy.sleep(0.5)
+        reverse_pose = self.parent.pose
+        reverse_pose.pose.pose.position.x -= 0.2
         self.reverse()
+        while self.parent.waiting:
+            if self.reverse_feedback(self.parent.pose, reverse_pose) < 0.2:
+                self.parent.update_textbox('Reversing done','Yay!')
+                #Go back to first state
+                self.state = 0
+                print 'setting the state back to 0'
+                self.parent.waiting = False
         
     def reverse_feedback(self, t1, t2):
         """
