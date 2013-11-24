@@ -163,7 +163,7 @@ class Widgetti(QWidget):
             #self.notificationPub.publish(notification)
             #self.update_textbox('Moving to grabbing', 'YAY!')
             print 'Moving to next state from ' + str(self.taskplanner.state)
-            self.taskplanner.state = self.taskplanner.state + 1
+            #self.taskplanner.state = self.taskplanner.state + 1
             self.waiting = False
             self.taskplanner.explorer_pub = rospy.Publisher('explore_next_point', String, latch=False)
             
