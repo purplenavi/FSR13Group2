@@ -134,7 +134,7 @@ class Explorer:
             print 'Whole map is checked out so the exploring is done!';
             return None
         weightmap = np.zeros((len(self.map),len(self.map[0])))
-        # Check smallest distance from walls, obstacles or prechecked point
+        # Check smallest distance from walls, obstacles or prechecked point for each zero point
         for i in range(len(unexplored[0])):
             x = unexplored[0][i]
             y = unexplored[1][i]
@@ -203,8 +203,12 @@ class Explorer:
                     weightmap[0][i] = 0
                     weightmap[1][i] = 0
                     new_points = np.where(weightmap==weightmap.max())
+            if x is not None and y is not None:
+                # There's no walls in the way, no need to check more points from weightmap
+                break
         if x is None or y is None:
             print 'Iz gone bad! No new point found but behind walls even though it should exist'
+            # Needs some recovery behavior, 'cause it might end up in here eventually
             return None
         else:
             # Create MoveBaseGoal and return it
