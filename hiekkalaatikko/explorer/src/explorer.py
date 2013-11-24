@@ -24,7 +24,7 @@ class Explorer:
         self.angle = 55 # angle in where camera can detect pirates ni degrees
         self.min_distance = 0.2 # minimum distance where camera can detect pirates in meters
         self.max_distance = 1.5 # maximum distance where camera can detect pirates in meters
-        self.resolution = None
+        self.resolution = None # resolution in m/cell
         self.map = None
         self.pose = None
         # Subscribers to deal with incoming data
@@ -124,7 +124,7 @@ class Explorer:
 
 
     def get_next_point(self, msg):
-        if self.map is None or self.pose is None:
+        if self.map is None or self.pose is None or self.resolution is None:
             print 'Cannot get next point, Explorer not initialized yet'
             return
         # There's no reason for me to do anything with the msg, wadap...
@@ -170,6 +170,7 @@ class Explorer:
             weightmap[y][x] = mindist
         # Get maximum valued point that ain't behind wall (no 2 in map in direct path)
         new_points = np.where(weightmap==weightmap.max()):
+        # x and y are cell indexes here
         x = None
         y = None
         while weightmap.max() > 0 and len(new_points) > 0:
@@ -211,13 +212,16 @@ class Explorer:
             # Needs some recovery behavior, 'cause it might end up in here eventually
             return None
         else:
+            # Convert cell indexes to coordinates
+            x *= self.resolution
+            y *= self.resolution
             # Create MoveBaseGoal and return it
             goal = PoseStamped()
             quaternion = quaternion_from_euler(0, 0, math.atan2(y-self.pose.position.y, x-self.pose.position.x))
             goal.header.frame_id = 'map'
             goal.header.stamp = rospy.Time.now()
             goal.pose.position.x = x
-            goal.pose.position.y = y
+            goal.pose.position.y = x
             goal.pose.orientation.w = self.pose.orientation.w
             goal.pose.orientation.z = self.pose.orientation.z
             print 'Next unexplored goal publish at ('+str(x)+', '+str(y)+')'
