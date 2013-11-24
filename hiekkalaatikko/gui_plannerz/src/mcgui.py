@@ -24,7 +24,7 @@ from move_base_msgs.msg import MoveBaseAction, MoveBaseGoal
 import actionlib
 from actionlib_msgs.msg import GoalStatus
 
-goal_states={'0':'PENDING','1':'ACTIVE','2':'PREEMPTED','3':'SUCCEEDED','4':'ABORTED','5':'REJECTED','6':'PREEMPTING','7':'RECALLING','8':'RECALLED','9':'LOST'}
+goal_states={0:'PENDING',1:'ACTIVE',2:'PREEMPTED',3:'SUCCEEDED',4:'ABORTED',5:'REJECTED',6:'PREEMPTING',7:'RECALLING',8:'RECALLED',9:'LOST'}
 
 class Widgetti(QWidget):
 
@@ -140,7 +140,7 @@ class Widgetti(QWidget):
             #notification.msg = "Movement Aborted!"
         else:
             print 'sumthing else'
-            print goal_states.get(str(status))
+            print goal_states.get(status)
             #self.update_textbox('Goal Status', 'WTF? something else')
             #notification.level = RideNotification.DEBUG
             #notification.msg = "[GoTo] Odd Completion"
