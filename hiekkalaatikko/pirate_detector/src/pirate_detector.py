@@ -48,7 +48,6 @@ class pirate_detector:
             print 'WE has piratez'
             pirate = self.pirates.pop()
             cloud_data = pointcloud2_to_array(data)
-            datapoint = []
             found = False
             datapoint = []
             datapoint.append(cloud_data['x'][pirate[1]+y][pirate[0]+x])
@@ -123,7 +122,6 @@ class pirate_detector:
         while self.dead_pirates:
             pirate = self.dead_pirates.pop()
             cloud_data = pointcloud2_to_array(data)
-            datapoint = []
             found = False
             datapoint = []
             datapoint.append(cloud_data['x'][pirate[1]+y][pirate[0]+x])
