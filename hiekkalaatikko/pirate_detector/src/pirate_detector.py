@@ -60,7 +60,6 @@ class pirate_detector:
                         break
                 if found:
                     break
-                x++
             if found:
                 print datapoint
                 #Create a P2P message to reach the figure
@@ -103,7 +102,6 @@ class pirate_detector:
                         break
                 if found:
                     break
-                x++
             if found:
                 print datapoint
                 #Create a P2P message to reach the figure
