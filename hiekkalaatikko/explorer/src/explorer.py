@@ -222,7 +222,7 @@ class Explorer:
             goal.header.frame_id = 'map'
             goal.header.stamp = rospy.Time.now()
             goal.pose.position.x = x
-            goal.pose.position.y = x
+            goal.pose.position.y = y 
             goal.pose.orientation.w = self.pose.orientation.w
             goal.pose.orientation.z = self.pose.orientation.z
             print 'Next unexplored goal publish at ('+str(x)+', '+str(y)+'), calculation took '+str(rospy.get_time-time_start)+' seconds..'
