@@ -36,7 +36,7 @@ class Explorer:
 
     # Method to update map with laser callback data
     def laser_callback(self,msg):
-        self.pose = msg.origin
+        self.pose = msg.info.origin
         self.resolution = msg.info.resolution
         if self.map is None:
             self.map = np.zeros((msg.info.height, msg.info.width))
@@ -127,11 +127,12 @@ class Explorer:
         if self.map is None or self.pose is None or self.resolution is None:
             print 'Cannot get next point, Explorer not initialized yet'
             return
+        time_start = rospy.get_time()
         # There's no reason for me to do anything with the msg, wadap...
         print 'Wow! I just got a message from task planner: '+msg
         unexplored = np.where(self.map == 0) # Giving the indexes of map containing the zeros
         if len(unexplored) == 0:
-            print 'Whole map is checked out so the exploring is done!';
+            print 'Whole map is already checked out so the exploring is done!';
             return None
         weightmap = np.zeros((len(self.map),len(self.map[0])))
         # Check smallest distance from walls, obstacles or prechecked point for each zero point
@@ -224,5 +225,5 @@ class Explorer:
             goal.pose.position.y = x
             goal.pose.orientation.w = self.pose.orientation.w
             goal.pose.orientation.z = self.pose.orientation.z
-            print 'Next unexplored goal publish at ('+str(x)+', '+str(y)+')'
+            print 'Next unexplored goal publish at ('+str(x)+', '+str(y)+'), calculation took '+str(rospy.get_time-time_start)+' seconds..'
             self.goal_pub.publish(goal)
