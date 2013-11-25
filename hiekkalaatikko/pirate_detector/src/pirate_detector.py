@@ -116,49 +116,42 @@ class pirate_detector:
             pirate = self.dead_pirates.pop()
             cloud_data = pointcloud2_to_array(data)
             found = False
-            datapoint = []
-            datapoint.append(cloud_data['x'][pirate[1]+y][pirate[0]+x])
-            datapoint.append(cloud_data['y'][pirate[1]+y][pirate[0]+x])
-            datapoint.append(cloud_data['z'][pirate[1]+y][pirate[0]+x])
-            if not math.isnan(datapoint[0]) and not math.isnan(datapoint[1]) and not math.isnan(datapoint[2]):
-                found = True
-            if not found:
-                x = 1
-                while x <= 5:
-                    y = 0
-                    while y <= 5:
-                        datapoint = []
-                        datapoint.append(cloud_data['x'][pirate[1]+y][pirate[0]+x])
-                        datapoint.append(cloud_data['y'][pirate[1]+y][pirate[0]+x])
-                        datapoint.append(cloud_data['z'][pirate[1]+y][pirate[0]+x])
-                        if not math.isnan(datapoint[0]) and not math.isnan(datapoint[1]) and not math.isnan(datapoint[2]):
-                            found = True
-                            break
-                        datapoint = []
-                        datapoint.append(cloud_data['x'][pirate[1]-y][pirate[0]+x])
-                        datapoint.append(cloud_data['y'][pirate[1]-y][pirate[0]+x])
-                        datapoint.append(cloud_data['z'][pirate[1]-y][pirate[0]+x])
-                        if not math.isnan(datapoint[0]) and not math.isnan(datapoint[1]) and not math.isnan(datapoint[2]):
-                            found = True
-                            break
-                        datapoint = []
-                        datapoint.append(cloud_data['x'][pirate[1]+y][pirate[0]-x])
-                        datapoint.append(cloud_data['y'][pirate[1]+y][pirate[0]-x])
-                        datapoint.append(cloud_data['z'][pirate[1]+y][pirate[0]-x])
-                        if not math.isnan(datapoint[0]) and not math.isnan(datapoint[1]) and not math.isnan(datapoint[2]):
-                            found = True
-                            break
-                        datapoint = []
-                        datapoint.append(cloud_data['x'][pirate[1]-y][pirate[0]-x])
-                        datapoint.append(cloud_data['y'][pirate[1]-y][pirate[0]-x])
-                        datapoint.append(cloud_data['z'][pirate[1]-y][pirate[0]-x])
-                        if not math.isnan(datapoint[0]) and not math.isnan(datapoint[1]) and not math.isnan(datapoint[2]):
-                            found = True
-                            break
-                        y++
-                    if found:
+            x = 0
+            while x <= 5:
+                y = 0
+                while y <= 5:
+                    datapoint = []
+                    datapoint.append(cloud_data['x'][pirate[1]+y][pirate[0]+x])
+                    datapoint.append(cloud_data['y'][pirate[1]+y][pirate[0]+x])
+                    datapoint.append(cloud_data['z'][pirate[1]+y][pirate[0]+x])
+                    if not math.isnan(datapoint[0]) and not math.isnan(datapoint[1]) and not math.isnan(datapoint[2]):
+                        found = True
                         break
-                    x++
+                    datapoint = []
+                    datapoint.append(cloud_data['x'][pirate[1]-y][pirate[0]+x])
+                    datapoint.append(cloud_data['y'][pirate[1]-y][pirate[0]+x])
+                    datapoint.append(cloud_data['z'][pirate[1]-y][pirate[0]+x])
+                    if not math.isnan(datapoint[0]) and not math.isnan(datapoint[1]) and not math.isnan(datapoint[2]):
+                        found = True
+                        break
+                    datapoint = []
+                    datapoint.append(cloud_data['x'][pirate[1]+y][pirate[0]-x])
+                    datapoint.append(cloud_data['y'][pirate[1]+y][pirate[0]-x])
+                    datapoint.append(cloud_data['z'][pirate[1]+y][pirate[0]-x])
+                    if not math.isnan(datapoint[0]) and not math.isnan(datapoint[1]) and not math.isnan(datapoint[2]):
+                        found = True
+                        break
+                    datapoint = []
+                    datapoint.append(cloud_data['x'][pirate[1]-y][pirate[0]-x])
+                    datapoint.append(cloud_data['y'][pirate[1]-y][pirate[0]-x])
+                    datapoint.append(cloud_data['z'][pirate[1]-y][pirate[0]-x])
+                    if not math.isnan(datapoint[0]) and not math.isnan(datapoint[1]) and not math.isnan(datapoint[2]):
+                        found = True
+                        break
+                    y++
+                if found:
+                    break
+                x++
             if found:
                 print datapoint
                 #Create a P2P message to reach the figure
