@@ -88,11 +88,13 @@ class Widgetti(QWidget):
         self.layout.addLayout(self.button_layout)
         self.layout.addWidget(QLabel('Click path points with mouze. Last point with rclickz'))
         self.setLayout(self.layout)
+        self.timer = 0
         
     def pirate_callback(self, data):
         if self.pirate_update:
             for z in data.poses:
                 self.pirates.append(z)
+                self.update_textbox('Number of pirates: ', str(len(self.pirates)))
             self.pirate_update = False
     
     def dead_pirate_callback(self, data):
@@ -122,7 +124,7 @@ class Widgetti(QWidget):
             #notification.msg = "Movement Cancelled"
         elif status is GoalStatus.SUCCEEDED:
             print 'success'
-            self.taskplanner.state += 1
+            #self.taskplanner.state += 1
             #self.taskplanner.explorer_pub = rospy.Publisher('explore_next_point', String, latch=False)
             #notification.level = RideNotification.INFO
             #notification.msg = "Movement Complete!"
@@ -147,10 +149,13 @@ class Widgetti(QWidget):
         #self.notificationPub.publish(notification)
     
     def feedback(self, feedback):
+        print 'in the feedback lol'
         pose_stamp = feedback.base_position
+        self.timer += 1
         #if self.pirate_detector.move_goal:
             #self.update_textbox('Current distance from goal', str(self.distance(self.pirate_detector.move_goal, pose_stamp)))
         if self.taskplanner.move_goal and self.distance(self.taskplanner.move_goal, pose_stamp) < 0.2:
+            self.timer = 0
             #print str(self.distance(self.pirate_detector.move_goal, pose_stamp))
             # this check cancels the goal if the robot is "close enough"
             # move_base will endlessly spin sometimes without this code
@@ -163,9 +168,15 @@ class Widgetti(QWidget):
             #self.notificationPub.publish(notification)
             #self.update_textbox('Moving to grabbing', 'YAY!')
             print 'Moving to next state from ' + str(self.taskplanner.state)
-            #self.taskplanner.state = self.taskplanner.state + 1
+            self.taskplanner.state = self.taskplanner.state + 1
             self.waiting = False
             self.taskplanner.explorer_pub = rospy.Publisher('explore_next_point', String, latch=False)
+        if self.timer > 500:
+            self.actionclient.cancel_goal()
+            self.goal = None
+            self.taskplanner.state = self.taskplanner.state + 1
+            self.waiting = False
+            self.timer = 0
             
     def distance(self, t1, t2):
         """
@@ -389,7 +400,7 @@ class TaskPlanner():
         #self.parent.update_textbox('Task Planner', 'Task planner initialized')
         #print 'Task planner initialized'
         rospy.sleep(1.0)
-        self.home = [0, 0]
+        self.home = [0.0, 0.0]
         self.exit = False
         
         self.openManipulator() # To ensure it's all the way opened
@@ -416,6 +427,7 @@ class TaskPlanner():
                         self.parent.waiting = True
                         
                     elif self.state == 1:
+                        self.parent.actionclient.cancel_all_goals()
                         #self.parent.update_textbox('Closing and going home','Trolloloo')
                         print 'closing'
                         self.parent.waiting = True
@@ -423,15 +435,18 @@ class TaskPlanner():
                         
                     elif self.state == 2:
                         self.goHomeBase()
+                        self.parent.waiting = True
                         #rospy.sleep(2.0)
                         #self.state = 2
                         
                     elif self.state == 3:
+                        self.parent.actionclient.cancel_all_goals()
                         print 'dropping'
                         self.parent.waiting = True
                         self.drop_figure()
                         rospy.sleep(2.0)
                         if not self.parent.pirates:
+                            print 'No more pirates lol'
                             self.exit = True
                     
                     elif self.state == 4:
@@ -445,7 +460,7 @@ class TaskPlanner():
     def move_to_pirate(self):
         self.move_goal = MoveBaseGoal(target_pose=self.parent.pirates.pop())
         print 'Pirate at: ' + str(self.move_goal)
-        self.parent.actionclient.send_goal(self.move_goal, done_cb = self.parent.done_callback, feedback_cb=self.parent.feedback)
+        self.parent.actionclient.send_goal(self.move_goal, feedback_cb=self.parent.feedback)
 
     def manipulatorCb(self, msg):
         self.parent.update_textbox('Manipulator subscription',msg)
@@ -457,16 +472,16 @@ class TaskPlanner():
         location.header.stamp = rospy.Time.now()
         location.pose.position.x = x
         location.pose.position.y = y
-        location.pose.orientation.w = self.parent.pose.pose.pose.orientation.w
-        location.pose.orientation.z = self.parent.pose.pose.pose.orientation.z
+        location.pose.orientation.w = quaternion[3]
+        location.pose.orientation.z = quaternion[2]
         location = MoveBaseGoal(target_pose=location)
-        print 'Sending home goal'
-        self.parent.actionclient.send_goal(location, done_cb = self.parent.done_callback, feedback_cb=self.parent.feedback)
+        self.move_goal = location
+        self.parent.actionclient.send_goal(location, feedback_cb=self.parent.feedback)
         
     def grab_figure(self):
         self.closeManipulator()
         # Closing
-        rospy.sleep(0.5)
+        rospy.sleep(1.0)
         self.state += 1
         self.parent.waiting = False
 
@@ -478,7 +493,8 @@ class TaskPlanner():
         reverse_pose.pose.pose.position.x -= 0.2
         self.reverse()
         while self.parent.waiting:
-            if self.reverse_feedback(self.parent.pose, reverse_pose) < 0.2:
+            print self.reverse_feedback(self.parent.pose, reverse_pose)
+            if self.reverse_feedback(self.parent.pose, reverse_pose) < 0.4:
                 self.parent.update_textbox('Reversing done','Yay!')
                 #Go back to first state
                 self.state = 0
@@ -510,7 +526,6 @@ class TaskPlanner():
         self.driver.publish(Twist())
 
     def goHomeBase(self):
-        self.parent.waiting = True
         self.goToLocation(self.home[0],self.home[1])
         print 'Getting this pirate home'
 
