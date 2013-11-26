@@ -216,14 +216,14 @@ class Explorer:
             # Convert cell indexes to coordinates
             x *= self.resolution
             y *= self.resolution
-            # Create MoveBaseGoal and return it
+            # Create PoseStamped and return it
             goal = PoseStamped()
             quaternion = quaternion_from_euler(0, 0, math.atan2(y-self.pose.position.y, x-self.pose.position.x))
             goal.header.frame_id = 'map'
             goal.header.stamp = rospy.Time.now()
             goal.pose.position.x = x
             goal.pose.position.y = y 
-            goal.pose.orientation.w = self.pose.orientation.w
-            goal.pose.orientation.z = self.pose.orientation.z
+            goal.pose.orientation.w = quaternion[3]
+            goal.pose.orientation.z = quaternion[2]
             print 'Next unexplored goal publish at ('+str(x)+', '+str(y)+'), calculation took '+str(rospy.get_time()-time_start)+' seconds..'
             self.goal_pub.publish(goal)
