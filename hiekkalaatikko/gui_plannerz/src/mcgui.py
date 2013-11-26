@@ -94,7 +94,7 @@ class Widgetti(QWidget):
         if self.pirate_update:
             for z in data.poses:
                 self.pirates.append(z)
-                self.update_textbox('Number of pirates: ', str(len(self.pirates)))
+            self.update_textbox('Number of pirates: ', str(len(self.pirates)))
             self.pirate_update = False
     
     def dead_pirate_callback(self, data):
@@ -102,6 +102,7 @@ class Widgetti(QWidget):
             for z in data.poses:
                 self.dead_pirates.append(z)
             self.dead_pirate_update = False
+			self.robomap.insert_to_map(self.dead_pirates)
 
     def update_textbox(self, header, txt):
         self.debug_stream.insertPlainText(header + '\n')
@@ -325,6 +326,17 @@ class RoboMap(QGraphicsView):
             for z in self.points:
                 self.scene.removeItem(z)
             self.points = None
+			
+	def update_map(self, dead_pirates):
+		for z in dead_pirates:
+			x = z.pose.position.x
+			y = z.pose.position.y
+			#transform pose coordinates to map coordinates
+			map_y = (y - self.origin[1])/self.resolution
+			x = (((self.w/2) - porygon[z].x()) + (self.w/2)) * self.resolution + self.origin[0]
+			map_x = -((x - self.origin[0])/self.resolution) + self.w
+			self.draw_point(map_x, map_y, color=Qt.green)
+		
 
     def draw_point(self, x, y, color=Qt.magenta, rad=1.0, add_point=False):
         ell = self.scene.addEllipse(x-rad, y-rad, rad*2.0, rad*2.0, color, QBrush(Qt.SolidPattern))
