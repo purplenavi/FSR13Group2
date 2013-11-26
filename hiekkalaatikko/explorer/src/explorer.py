@@ -119,7 +119,7 @@ class Explorer:
                     y0 = y0 + sy 
 
     def plot(self, x, y):
-    	if x < 0 or y < 0 or x > self.width or y > self.height:
+    	if x < 0 or y < 0 or x >= self.width or y >= self.height:
     		return False
     	
         if self.map[y][x] == 2:
