@@ -40,6 +40,8 @@ class Explorer:
         self.resolution = msg.info.resolution
         if self.map is None:
             self.map = np.zeros((msg.info.height, msg.info.width))
+            self.width = msg.info.width
+            self.height = msg.info.height
             print 'Explorer initialized'
         # Convert values gotten from laser to binary
         reshaped_data = np.array(msg.data > 50, dtype=int, copy=False, order='C')
@@ -114,6 +116,9 @@ class Explorer:
                     y0 = y0 + sy 
 
     def plot(self, x, y):
+    	if x < 0 or y < 0 or x > self.width or y > self.height
+    		return False
+    	
         if self.map[y][x] == 2:
             # Collided a wall, end drawing
             return False
