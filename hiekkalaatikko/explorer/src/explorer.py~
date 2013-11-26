@@ -231,7 +231,7 @@ class Explorer:
 if __name__ == "__main__":
     rospy.init_node('explorer')
     rospy.sleep(1.0)
-    expl = Explorer()
+    expl = explorer()
     try:
         rospy.spin()
     except KeyboardInterrupt:
