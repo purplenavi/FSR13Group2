@@ -29,7 +29,7 @@ class Explorer:
         self.pose = None
         # Subscribers to deal with incoming data
         self.map_subscriber = rospy.Subscriber('/map', OccupancyGrid, self.laser_callback)
-        self.camera_subscriber = rospy.Subscriber('/camera/rgb/image_mono', Image, self.detector)
+        self.camera_subscriber = rospy.Subscriber('/camera/rgb/image_mono', Image, self.detector_callback)
         # Publish goals as PoseStamped, subscriber at task planner ?
         self.goal_pub = rospy.Publisher('explore_point', PoseStamped)
         self.get_goal_sub = rospy.Subscriber('/explore_next_point', String, self.get_next_point)
