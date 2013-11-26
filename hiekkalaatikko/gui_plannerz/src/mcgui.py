@@ -102,7 +102,7 @@ class Widgetti(QWidget):
             for z in data.poses:
                 self.dead_pirates.append(z)
             self.dead_pirate_update = False
-			self.robomap.insert_to_map(self.dead_pirates)
+            self.robomap.insert_to_map(self.dead_pirates)
 
     def update_textbox(self, header, txt):
         self.debug_stream.insertPlainText(header + '\n')
@@ -468,8 +468,9 @@ class TaskPlanner():
                     pass
 
     def explorer_callback(self,data):
-        self.parent.update_textbox('Next coordinates from explorer', data)
-        #self.goToLocation(data.pose.position.x,data.pose.position.y)
+        self.parent.update_textbox('Next coordinates from explorer', '('+str(data.pose.position.x)+','+str(data.pose.position.y)+')')
+        print data
+        self.goToLocation(data.pose.position.x,data.pose.position.y)
 
     def move_to_pirate(self):
         self.move_goal = MoveBaseGoal(target_pose=self.parent.pirates.pop())
@@ -506,6 +507,7 @@ class TaskPlanner():
         reverse_pose = self.parent.pose
         reverse_pose.pose.pose.position.x -= 0.2
         self.reverse()
+        timer = 0
         while self.parent.waiting:
             print self.reverse_feedback(self.parent.pose, reverse_pose)
             if self.reverse_feedback(self.parent.pose, reverse_pose) < 0.4:
@@ -514,6 +516,12 @@ class TaskPlanner():
                 self.state = 0
                 print 'setting the state back to 0'
                 self.parent.waiting = False
+            timer+=1
+            if timer > 1000:
+                self.state = 0
+                print 'timer limit reached'
+                self.parent.waiting = False
+                break
         
     def reverse_feedback(self, t1, t2):
         """

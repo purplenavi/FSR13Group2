@@ -6,7 +6,7 @@ from nav_msgs.msg import MapMetaData,OccupancyGrid
 from geometry_msgs.msg import PoseStamped
 from sensor_msgs.msg import Image
 from std_msgs.msg import String
-from tf.transformations import euler_from_quaternion
+from tf.transformations import euler_from_quaternion,quaternion_from_euler
 import numpy as np
 import math
 
@@ -155,46 +155,50 @@ class Explorer:
             return
         time_start = rospy.get_time()
         # There's no reason for me to do anything with the msg, wadap...
-        print 'Wow! I just got a message from task planner: '+msg
+        print 'Wow! I just got a message from task planner: '+str(msg)
         unexplored = np.where(self.map == 0) # Giving the indexes of map containing the zeros
         if len(unexplored) == 0:
             print 'Whole map is already checked out so the exploring is done!';
             return None
         weightmap = np.zeros((len(self.map),len(self.map[0])))
         # Check smallest distance from walls, obstacles or prechecked point for each zero point
+        print 'Starting weightmap calculation'
         for i in range(len(unexplored[0])):
-            x = unexplored[0][i]
-            y = unexplored[1][i]
+            x = unexplored[1][i]
+            y = unexplored[0][i]
             it = 1
             mindist = len(weightmap)
-            while y+it < len(weightmap):
+            while y+it < len(weightmap) and it < 5:
                 if self.map[y+it][x] > 0:
                     break
                 it += 1
             if mindist > it:
                 mindist = it
             it = 1
-            while it < mindist and y-it >= 0:
+            while it < mindist and y-it >= 0 and it < 5:
                 if self.map[y-it][x] > 0:
                     break
                 it += 1
             if mindist > it:
                 mindist = it
             it = 1
-            while it < mindist and x+it < len(weightmap[0]):
+            while it < mindist and x+it < len(weightmap[0]) and it < 5:
                 if self.map[y][x+it] > 0:
                     break
                 it += 1
             if mindist > it:
                 mindist = it
             it = 1
-            while it < mindist and x-it >= 0:
+            while it < mindist and x-it >= 0 and it < 5:
                 if self.map[y][x-it] > 0:
                     break
                 it += 1
             if mindist < it:
                 mindist = it
             weightmap[y][x] = mindist
+            if weightmap[y][x] >= 5:
+                break
+        print 'Weightmap calculated'
         # Get maximum valued point that ain't behind wall (no 2 in map in direct path)
         new_points = np.where(weightmap==weightmap.max())
         # x and y are cell indexes here
@@ -206,22 +210,26 @@ class Explorer:
                 angle = math.atan2(new_points[0][i]-self.pose.position.y,new_points[1][i]-self.pose.position.x)
                 x = new_points[0][i]
                 y = new_points[1][i]
-                for j in range(math.ceil(distance)): # loop through every cell in the way
+                for j in range(int(math.ceil(distance))): # loop through every cell in the way
                     point = (self.pose.position.x + j*math.cos(angle), self.pose.position.y + j*math.sin(angle))
+                    y1 = int(math.floor(point[0]))
+                    y2 = int(math.ceil(point[0]))
+                    x1 = int(math.floor(point[1]))
+                    x2 = int(math.ceil(point[1]))
                     # Check points rounded around this point ain't an obstacle
-                    if self.map[math.floor(point[1])][math.floor(point[2])] == 2:
+                    if self.map[y1][x1] == 2:
                         x = None
                         y = None
                         break
-                    if self.map[math.floor(point[1])][math.ceil(point[2])] == 2:
+                    if self.map[y1][x2] == 2:
                         x = None
                         y = None
                         break
-                    if self.map[math.ceil(point[1])][math.floor(point[2])] == 2:
+                    if self.map[y2][x1] == 2:
                         x = None
                         y = None
                         break
-                    if self.map[math.ceil(point[1])][math.ceil(point[2])] == 2:
+                    if self.map[y2][x2] == 2:
                         x = None
                         y = None
                         break
@@ -240,6 +248,8 @@ class Explorer:
             return None
         else:
             # Convert cell indexes to coordinates
+            x += int(len(self.map[0])/2)
+            y += int(len(self.map)/2)
             x *= self.resolution
             y *= self.resolution
             # Create PoseStamped and return it

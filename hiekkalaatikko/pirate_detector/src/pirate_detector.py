@@ -22,7 +22,7 @@ class pirate_detector:
         #Give the opencv display window a name
         self.cv_window_name = 'OpenCVImage'
         #create the window and make it re-sizeable (second parameter 0)
-        cv.NamedWindow(self.cv_window_name)
+        #cv.NamedWindow(self.cv_window_name)
         #create the cv_bridge object
         self.bridge = CvBridge()
         #subscribe to image data
@@ -51,6 +51,8 @@ class pirate_detector:
             found = False
             for x in [0,1,-1,2,-2,3,-3,4,-4,5,-5]:
                 for y in [0,1,-1,2,-2,3,-3,4,-4,5,-5]:
+                    if pirate[1]+y < 0 or pirate[0]+x < 0 or len(cloud_data['x']) <= pirate[1]+y or len(cloud_data['x'][0]) <= pirate[0]+x:
+                        continue
                     datapoint = []
                     datapoint.append(cloud_data['x'][pirate[1]+y][pirate[0]+x])
                     datapoint.append(cloud_data['y'][pirate[1]+y][pirate[0]+x])
@@ -93,6 +95,8 @@ class pirate_detector:
             found = False
             for x in [0,1,-1,2,-2,3,-3,4,-4,5,-5]:
                 for y in [0,1,-1,2,-2,3,-3,4,-4,5,-5]:
+                    if pirate[1]+y < 0 or pirate[0]+x < 0 or len(cloud_data['x']) <= pirate[1]+y or len(cloud_data['x'][0]) <= pirate[0]+x:
+                        continue
                     datapoint = []
                     datapoint.append(cloud_data['x'][pirate[1]+y][pirate[0]+x])
                     datapoint.append(cloud_data['y'][pirate[1]+y][pirate[0]+x])
@@ -128,7 +132,7 @@ class pirate_detector:
                     tmp.append([x, y])
                     cv.Circle(self.cv_image, (int(pirate[0]), int(pirate[1])), 15, (255, 255, 255), cv.CV_FILLED)
         print 'Publishing coordinates'
-        cv.ShowImage(self.cv_window_name, self.cv_image)
+        #cv.ShowImage(self.cv_window_name, self.cv_image)
         self.pirate_publisher.publish(path1)
         self.dead_pirate_publisher.publish(path2)
         

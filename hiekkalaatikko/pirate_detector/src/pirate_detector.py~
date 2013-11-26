@@ -48,14 +48,15 @@ class pirate_detector:
             print 'WE has piratez'
             pirate = self.pirates.pop()
             cloud_data = pointcloud2_to_array(data)
-            datapoint = []
             found = False
-            for x in range(10):
-                for y in range(10):
+            for x in [0,1,-1,2,-2,3,-3,4,-4,5,-5]:
+                for y in [0,1,-1,2,-2,3,-3,4,-4,5,-5]:
+                    if pirate[1]+y < 0 or pirate[0]+x < 0 or len(cloud_data['x']) <= pirate[1]+y or len(cloud_data['x'][0]) <= pirate[0]+x:
+                        continue
                     datapoint = []
-                    datapoint.append(cloud_data['x'][pirate[1]+y-5][pirate[0]+x-5])
-                    datapoint.append(cloud_data['y'][pirate[1]+y-5][pirate[0]+x-5])
-                    datapoint.append(cloud_data['z'][pirate[1]+y-5][pirate[0]+x-5])
+                    datapoint.append(cloud_data['x'][pirate[1]+y][pirate[0]+x])
+                    datapoint.append(cloud_data['y'][pirate[1]+y][pirate[0]+x])
+                    datapoint.append(cloud_data['z'][pirate[1]+y][pirate[0]+x])
                     if not math.isnan(datapoint[0]) and not math.isnan(datapoint[1]) and not math.isnan(datapoint[2]):
                         found = True
                         break
@@ -91,14 +92,15 @@ class pirate_detector:
         while self.dead_pirates:
             pirate = self.dead_pirates.pop()
             cloud_data = pointcloud2_to_array(data)
-            datapoint = []
             found = False
-            for x in range(10):
-                for y in range(10):
+            for x in [0,1,-1,2,-2,3,-3,4,-4,5,-5]:
+                for y in [0,1,-1,2,-2,3,-3,4,-4,5,-5]:
+                    if pirate[1]+y < 0 or pirate[0]+x < 0 or len(cloud_data['x']) <= pirate[1]+y or len(cloud_data['x'][0]) <= pirate[0]+x:
+                        continue
                     datapoint = []
-                    datapoint.append(cloud_data['x'][pirate[1]+y-5][pirate[0]+x-5])
-                    datapoint.append(cloud_data['y'][pirate[1]+y-5][pirate[0]+x-5])
-                    datapoint.append(cloud_data['z'][pirate[1]+y-5][pirate[0]+x-5])
+                    datapoint.append(cloud_data['x'][pirate[1]+y][pirate[0]+x])
+                    datapoint.append(cloud_data['y'][pirate[1]+y][pirate[0]+x])
+                    datapoint.append(cloud_data['z'][pirate[1]+y][pirate[0]+x])
                     if not math.isnan(datapoint[0]) and not math.isnan(datapoint[1]) and not math.isnan(datapoint[2]):
                         found = True
                         break
@@ -130,7 +132,7 @@ class pirate_detector:
                     tmp.append([x, y])
                     cv.Circle(self.cv_image, (int(pirate[0]), int(pirate[1])), 15, (255, 255, 255), cv.CV_FILLED)
         print 'Publishing coordinates'
-        cv.ShowImage(self.cv_window_name, self.cv_image)
+        #cv.ShowImage(self.cv_window_name, self.cv_image)
         self.pirate_publisher.publish(path1)
         self.dead_pirate_publisher.publish(path2)
         
@@ -175,7 +177,7 @@ class pirate_detector:
             if h > w and h > 20 and h < 90:
                 self.pirates.append((self.get_center_coordinates(x, y, h, w)))
                 #cv.Rectangle(cv_image, (x, y), (x+w, y+h), (0, 255, 0), cv.CV_FILLED)
-            elif w > h and w > 20 and w < 90:
+            elif w > h and w > 20 and w < 90 and (w-h) > 10:
                 self.dead_pirates.append((self.get_center_coordinates(x, y, h, w)))
                 #cv.Rectangle(cv_image, (x, y), (x+w, y+h), (0, 100, 0), cv.CV_FILLED)
             contour_pointer = contour_pointer.h_next()

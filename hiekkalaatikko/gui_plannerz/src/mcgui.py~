@@ -94,7 +94,7 @@ class Widgetti(QWidget):
         if self.pirate_update:
             for z in data.poses:
                 self.pirates.append(z)
-                self.update_textbox('Number of pirates: ', str(len(self.pirates)))
+            self.update_textbox('Number of pirates: ', str(len(self.pirates)))
             self.pirate_update = False
     
     def dead_pirate_callback(self, data):
@@ -102,6 +102,7 @@ class Widgetti(QWidget):
             for z in data.poses:
                 self.dead_pirates.append(z)
             self.dead_pirate_update = False
+            self.robomap.insert_to_map(self.dead_pirates)
 
     def update_textbox(self, header, txt):
         self.debug_stream.insertPlainText(header + '\n')
@@ -149,6 +150,7 @@ class Widgetti(QWidget):
         #self.notificationPub.publish(notification)
     
     def feedback(self, feedback):
+        print 'in the feedback lol'
         pose_stamp = feedback.base_position
         self.timer += 1
         #if self.pirate_detector.move_goal:
@@ -324,6 +326,17 @@ class RoboMap(QGraphicsView):
             for z in self.points:
                 self.scene.removeItem(z)
             self.points = None
+			
+	def update_map(self, dead_pirates):
+		for z in dead_pirates:
+			x = z.pose.position.x
+			y = z.pose.position.y
+			#transform pose coordinates to map coordinates
+			map_y = (y - self.origin[1])/self.resolution
+			x = (((self.w/2) - porygon[z].x()) + (self.w/2)) * self.resolution + self.origin[0]
+			map_x = -((x - self.origin[0])/self.resolution) + self.w
+			self.draw_point(map_x, map_y, color=Qt.green)
+		
 
     def draw_point(self, x, y, color=Qt.magenta, rad=1.0, add_point=False):
         ell = self.scene.addEllipse(x-rad, y-rad, rad*2.0, rad*2.0, color, QBrush(Qt.SolidPattern))
@@ -409,6 +422,7 @@ class TaskPlanner():
             print 'NO PIRATES ASSHOLE!'
             self.parent.pirate_update = True
             self.explorer_pub.publish('Gimme sum coordinates, mate')
+            self.parent.update_textbox('Explorer', 'Asking next coordinates')
             # Trying with just one movement, reassigned when action movement succeeded (done_callback or feedback)
             explorer_pub = None
             self.exit = False
@@ -454,7 +468,9 @@ class TaskPlanner():
                     pass
 
     def explorer_callback(self,data):
-        self.goToLocation(data.pose.position.x,data.pose.position.y)
+        self.parent.update_textbox('Next coordinates from explorer', '('+str(data.pose.position.x)+','+str(data.pose.position.y)+')')
+        print data
+        #self.goToLocation(data.pose.position.x,data.pose.position.y)
 
     def move_to_pirate(self):
         self.move_goal = MoveBaseGoal(target_pose=self.parent.pirates.pop())
@@ -491,6 +507,7 @@ class TaskPlanner():
         reverse_pose = self.parent.pose
         reverse_pose.pose.pose.position.x -= 0.2
         self.reverse()
+        timer = 0
         while self.parent.waiting:
             print self.reverse_feedback(self.parent.pose, reverse_pose)
             if self.reverse_feedback(self.parent.pose, reverse_pose) < 0.4:
@@ -499,6 +516,12 @@ class TaskPlanner():
                 self.state = 0
                 print 'setting the state back to 0'
                 self.parent.waiting = False
+            timer+=1
+            if timer > 1000:
+                self.state = 0
+                print 'timer limit reached'
+                self.parent.waiting = False
+                break
         
     def reverse_feedback(self, t1, t2):
         """
@@ -538,9 +561,6 @@ class TaskPlanner():
         self.parent.update_textbox('Manipulator action','opening')
         #time.sleep(10) # just for testing before manipulator state publisher
         
-        
-
-
 
 if __name__ == "__main__":
     from python_qt_binding.QtGui import QApplication
