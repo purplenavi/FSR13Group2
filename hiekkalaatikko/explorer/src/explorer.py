@@ -41,10 +41,10 @@ class Explorer:
         if self.map is None:
             self.map = np.zeros((msg.info.height, msg.info.width))
             print 'Explorer initialized'
-        reshaped_data = np.array(msg.data, dtype=np.uint8, copy=False, order='C')
+        # Convert values gotten from laser to binary
+        reshaped_data = np.array(msg.data > 50, dtype=int, copy=False, order='C')
+        # Reshape the match map size
         reshaped_data = reshaped_data.reshape((msg.info.height, msg.info.width))
-        # Convert reshaped values gotten from laser to binary
-        laser_data = np.array(reshaped_data > 50, dtype=int)
         # Points to be cleared to make sure points contain value 2
         clearpoints = laser_data & np.array(self.map > 0, dtype=int)
         # Delete existing values from map in poins new laser data's going
