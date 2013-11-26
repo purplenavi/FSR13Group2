@@ -7,6 +7,7 @@ from geometry_msgs.msg import PoseStamped
 from sensor_msgs.msg import Image
 from std_msgs.msg import String
 from tf.transformations import euler_from_quaternion
+import numpy as np
 import math
 
 """
@@ -43,16 +44,18 @@ class Explorer:
             self.width = msg.info.width
             self.height = msg.info.height
             print 'Explorer initialized'
-        # Convert values gotten from laser to binary
-        reshaped_data = np.array(msg.data > 50, dtype=int, copy=False, order='C')
+        # Convert values gotten from laser to int
+        reshaped_data = np.array(msg.data, dtype=int, copy=False, order='C')
+        # Convert to binary 
+        reshaped_data = np.array(reshaped_data > 50, dtype=int)
         # Reshape the match map size
         reshaped_data = reshaped_data.reshape((msg.info.height, msg.info.width))
         # Points to be cleared to make sure points contain value 2
-        clearpoints = laser_data & np.array(self.map > 0, dtype=int)
+        clearpoints = reshaped_data & np.array(self.map > 0, dtype=int)
         # Delete existing values from map in poins new laser data's going
         self.map -= np.multiply(clearpoints,self.map)
         # Add new laser data points to map as 2
-        self.map += 2 * laser_data
+        self.map += 2 * reshaped_data
 
     # Method for detector callbacks (pcl)
     def detector_callback(self, data):
@@ -60,8 +63,8 @@ class Explorer:
             print 'Cannot use camera data, explorer not initialized yet'
             return
         # Robot coordinates on map
-        robotx = self.pose.position.x #150
-        roboty = self.pose.position.y #150
+        robotx = int(len(self.map[0])/2)+self.pose.position.x #150
+        roboty = int(len(self.map)/2)+self.pose.position.y #150
 
         (roll, pitch, robotangle) = euler_from_quaternion([self.pose.orientation.x, self.pose.orientation.y, self.pose.orientation.z, self.pose.orientation.w]) #40
 
@@ -69,7 +72,7 @@ class Explorer:
         step = 0.5
 
         # Mark area checked
-        for a in xrange(self.angle / step):
+        for a in xrange(int(self.angle / step)):
             targetangle = math.radians(beamangle + a * step)
 
             # Mark both ends of line
@@ -80,8 +83,8 @@ class Explorer:
             y1 = roboty + self.max_distance * self.resolution * math.sin(targetangle)
 
             # Line drawing algorithm
-            dx = math.abs(x1 - x0)
-            dy = math.abs(y1 - y0)
+            dx = abs(x1 - x0)
+            dy = abs(y1 - y0)
             sx = -1
             sy = -1
             if x0 < x1:
@@ -116,7 +119,7 @@ class Explorer:
                     y0 = y0 + sy 
 
     def plot(self, x, y):
-    	if x < 0 or y < 0 or x > self.width or y > self.height
+    	if x < 0 or y < 0 or x > self.width or y > self.height:
     		return False
     	
         if self.map[y][x] == 2:
