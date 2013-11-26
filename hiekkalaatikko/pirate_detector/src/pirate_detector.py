@@ -48,14 +48,13 @@ class pirate_detector:
             print 'WE has piratez'
             pirate = self.pirates.pop()
             cloud_data = pointcloud2_to_array(data)
-            datapoint = []
             found = False
-            for x in range(10):
-                for y in range(10):
+            for x in [0,1,-1,2,-2,3,-3,4,-4,5,-5]:
+                for y in [0,1,-1,2,-2,3,-3,4,-4,5,-5]:
                     datapoint = []
-                    datapoint.append(cloud_data['x'][pirate[1]+y-5][pirate[0]+x-5])
-                    datapoint.append(cloud_data['y'][pirate[1]+y-5][pirate[0]+x-5])
-                    datapoint.append(cloud_data['z'][pirate[1]+y-5][pirate[0]+x-5])
+                    datapoint.append(cloud_data['x'][pirate[1]+y][pirate[0]+x])
+                    datapoint.append(cloud_data['y'][pirate[1]+y][pirate[0]+x])
+                    datapoint.append(cloud_data['z'][pirate[1]+y][pirate[0]+x])
                     if not math.isnan(datapoint[0]) and not math.isnan(datapoint[1]) and not math.isnan(datapoint[2]):
                         found = True
                         break
@@ -91,14 +90,13 @@ class pirate_detector:
         while self.dead_pirates:
             pirate = self.dead_pirates.pop()
             cloud_data = pointcloud2_to_array(data)
-            datapoint = []
             found = False
-            for x in range(10):
-                for y in range(10):
+            for x in [0,1,-1,2,-2,3,-3,4,-4,5,-5]:
+                for y in [0,1,-1,2,-2,3,-3,4,-4,5,-5]:
                     datapoint = []
-                    datapoint.append(cloud_data['x'][pirate[1]+y-5][pirate[0]+x-5])
-                    datapoint.append(cloud_data['y'][pirate[1]+y-5][pirate[0]+x-5])
-                    datapoint.append(cloud_data['z'][pirate[1]+y-5][pirate[0]+x-5])
+                    datapoint.append(cloud_data['x'][pirate[1]+y][pirate[0]+x])
+                    datapoint.append(cloud_data['y'][pirate[1]+y][pirate[0]+x])
+                    datapoint.append(cloud_data['z'][pirate[1]+y][pirate[0]+x])
                     if not math.isnan(datapoint[0]) and not math.isnan(datapoint[1]) and not math.isnan(datapoint[2]):
                         found = True
                         break

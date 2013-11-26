@@ -29,22 +29,22 @@ class Explorer:
         self.pose = None
         # Subscribers to deal with incoming data
         self.map_subscriber = rospy.Subscriber('/map', OccupancyGrid, self.laser_callback)
-        self.camera_subscriber = rospy.Subscriber('/camera/rgb/image_mono', Image, self.detector)
+        self.camera_subscriber = rospy.Subscriber('/camera/rgb/image_mono', Image, self.detector_callback)
         # Publish goals as PoseStamped, subscriber at task planner ?
         self.goal_pub = rospy.Publisher('explore_point', PoseStamped)
         self.get_goal_sub = rospy.Subscriber('/explore_next_point', String, self.get_next_point)
 
     # Method to update map with laser callback data
     def laser_callback(self,msg):
-        self.pose = msg.origin
+        self.pose = msg.info.origin
         self.resolution = msg.info.resolution
         if self.map is None:
             self.map = np.zeros((msg.info.height, msg.info.width))
             print 'Explorer initialized'
-        reshaped_data = np.array(msg.data, dtype=np.uint8, copy=False, order='C')
+        # Convert values gotten from laser to binary
+        reshaped_data = np.array(msg.data > 50, dtype=int, copy=False, order='C')
+        # Reshape the match map size
         reshaped_data = reshaped_data.reshape((msg.info.height, msg.info.width))
-        # Convert reshaped values gotten from laser to binary
-        laser_data = np.array(reshaped_data > 50, dtype=int)
         # Points to be cleared to make sure points contain value 2
         clearpoints = laser_data & np.array(self.map > 0, dtype=int)
         # Delete existing values from map in poins new laser data's going
@@ -127,11 +127,12 @@ class Explorer:
         if self.map is None or self.pose is None or self.resolution is None:
             print 'Cannot get next point, Explorer not initialized yet'
             return
+        time_start = rospy.get_time()
         # There's no reason for me to do anything with the msg, wadap...
         print 'Wow! I just got a message from task planner: '+msg
         unexplored = np.where(self.map == 0) # Giving the indexes of map containing the zeros
         if len(unexplored) == 0:
-            print 'Whole map is checked out so the exploring is done!';
+            print 'Whole map is already checked out so the exploring is done!';
             return None
         weightmap = np.zeros((len(self.map),len(self.map[0])))
         # Check smallest distance from walls, obstacles or prechecked point for each zero point
@@ -147,7 +148,7 @@ class Explorer:
             if mindist > it:
                 mindist = it
             it = 1
-            while y > 0 and it < mindist and y-it >= 0:
+            while it < mindist and y-it >= 0:
                 if self.map[y-it][x] > 0:
                     break
                 it += 1
@@ -215,16 +216,16 @@ class Explorer:
             # Convert cell indexes to coordinates
             x *= self.resolution
             y *= self.resolution
-            # Create MoveBaseGoal and return it
+            # Create PoseStamped and return it
             goal = PoseStamped()
             quaternion = quaternion_from_euler(0, 0, math.atan2(y-self.pose.position.y, x-self.pose.position.x))
             goal.header.frame_id = 'map'
             goal.header.stamp = rospy.Time.now()
             goal.pose.position.x = x
-            goal.pose.position.y = x
-            goal.pose.orientation.w = self.pose.orientation.w
-            goal.pose.orientation.z = self.pose.orientation.z
-            print 'Next unexplored goal publish at ('+str(x)+', '+str(y)+')'
+            goal.pose.position.y = y 
+            goal.pose.orientation.w = quaternion[3]
+            goal.pose.orientation.z = quaternion[2]
+            print 'Next unexplored goal publish at ('+str(x)+', '+str(y)+'), calculation took '+str(rospy.get_time()-time_start)+' seconds..'
             self.goal_pub.publish(goal)
 
 

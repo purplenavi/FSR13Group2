@@ -410,6 +410,7 @@ class TaskPlanner():
             print 'NO PIRATES ASSHOLE!'
             self.parent.pirate_update = True
             self.explorer_pub.publish('Gimme sum coordinates, mate')
+            self.parent.update_textbox('Explorer', 'Asking next coordinates')
             # Trying with just one movement, reassigned when action movement succeeded (done_callback or feedback)
             explorer_pub = None
             self.exit = False
@@ -455,7 +456,8 @@ class TaskPlanner():
                     pass
 
     def explorer_callback(self,data):
-        self.goToLocation(data.pose.position.x,data.pose.position.y)
+        self.parent.update_textbox('Next coordinates from explorer', data)
+        #self.goToLocation(data.pose.position.x,data.pose.position.y)
 
     def move_to_pirate(self):
         self.move_goal = MoveBaseGoal(target_pose=self.parent.pirates.pop())
@@ -539,9 +541,6 @@ class TaskPlanner():
         self.parent.update_textbox('Manipulator action','opening')
         #time.sleep(10) # just for testing before manipulator state publisher
         
-        
-
-
 
 if __name__ == "__main__":
     from python_qt_binding.QtGui import QApplication
