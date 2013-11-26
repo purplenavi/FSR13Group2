@@ -28,6 +28,7 @@ class Explorer:
         self.resolution = None # resolution in m/cell
         self.map = None
         self.pose = None
+        self.ends = []
         # Subscribers to deal with incoming data
         self.map_subscriber = rospy.Subscriber('/map', OccupancyGrid, self.laser_callback)
         self.camera_subscriber = rospy.Subscriber('/camera/rgb/image_mono', Image, self.detector_callback)
@@ -71,6 +72,9 @@ class Explorer:
         beamangle = robotangle - (self.angle / 2)
         step = 0.5
 
+		# Search end points
+        self.ends = []
+        
         # Mark area checked
         for a in xrange(int(self.angle / step)):
             targetangle = math.radians(beamangle + a * step)
@@ -132,6 +136,12 @@ class Explorer:
         if end:
         	# Mark scan end
         	self.map[y][x] = 3
+        	
+        	# Append end coordinates to array
+        	coords = (x, y)
+        	if coords not in self.ends:
+        		self.ends.append(coords)
+        	
         	return True
         
         if self.map[y][x] == 0:
