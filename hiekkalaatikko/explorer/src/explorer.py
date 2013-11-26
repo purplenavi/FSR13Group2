@@ -148,7 +148,7 @@ class Explorer:
             if mindist > it:
                 mindist = it
             it = 1
-            while y > 0 and it < mindist and y-it >= 0:
+            while it < mindist and y-it >= 0:
                 if self.map[y-it][x] > 0:
                     break
                 it += 1
