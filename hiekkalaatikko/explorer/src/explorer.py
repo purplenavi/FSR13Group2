@@ -50,12 +50,12 @@ class Explorer:
         reshaped_data = np.array(reshaped_data > 50, dtype=int)
         # Reshape the match map size
         reshaped_data = reshaped_data.reshape((msg.info.height, msg.info.width))
-        # Points to be cleared to make sure points contain value 2
+        # Points to be cleared to make sure points contain value 7
         clearpoints = reshaped_data & np.array(self.map > 0, dtype=int)
         # Delete existing values from map in poins new laser data's going
         self.map -= np.multiply(clearpoints,self.map)
-        # Add new laser data points to map as 2
-        self.map += 2 * reshaped_data
+        # Add new laser data points to map as 7
+        self.map += 7 * reshaped_data
 
     # Method for detector callbacks (pcl)
     def detector_callback(self, data):
@@ -103,7 +103,8 @@ class Explorer:
                     break
 
                 if x0 == x1 and y0 == y1:
-                    break
+                	self.plot(x0,y0,True)
+                	break
                       
                 e2 = 2 * err
                 if e2 > -dy: 
@@ -111,23 +112,30 @@ class Explorer:
                     x0 = x0 + sx
 
                 if x0 == x1 and y0 == y1:
-                    self.plot(x0,y0)
+                    self.plot(x0,y0,True)
                     break
 
                 if e2 < dx:
                     err = err + dx
                     y0 = y0 + sy 
 
-    def plot(self, x, y):
+    def plot(self, x, y, end=False):
+    		
     	if x < 0 or y < 0 or x >= self.width or y >= self.height:
     		return False
     	
-        if self.map[y][x] == 2:
+        if self.map[y][x] == 7:
             # Collided a wall, end drawing
             return False
 
         # Draw
-        self.map[y][x] = 1
+        if end:
+        	# Mark scan end
+        	self.map[y][x] = 3
+        	return True
+        
+        if self.map[y][x] == 0:
+        	self.map[y][x] = 1
         return True
 
 
