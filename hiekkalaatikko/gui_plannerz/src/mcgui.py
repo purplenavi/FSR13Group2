@@ -17,12 +17,13 @@ from cv_bridge import CvBridge, CvBridgeError
 from sensor_msgs.msg import Image, PointCloud2, PointField
 from std_msgs.msg import String
 import os
-import sys
 import cv
 from move_base_msgs.msg import MoveBaseAction, MoveBaseGoal
-#from ride_msgs.msg import RideNotification, RidePose
 import actionlib
 from actionlib_msgs.msg import GoalStatus
+import sys
+sys.path.insert(0, '/home/fuerte_workspace/fsr2013/hiekkalaatikko/pirate_detector/src')
+import pirate_detector
 
 goal_states={0:'PENDING',1:'ACTIVE',2:'PREEMPTED',3:'SUCCEEDED',4:'ABORTED',5:'REJECTED',6:'PREEMPTING',7:'RECALLING',8:'RECALLED',9:'LOST'}
 
@@ -41,17 +42,13 @@ class Widgetti(QWidget):
         self.dead_pirate_update = False
         self.pose = None
         self.waiting = False
+		self.pirate_detector = pirate_detector() #Initializing pirate detector
 
         self.setWindowTitle('Gui plannerz lol')
-        self.drive = QPushButton('Removed driving lol!')
-        #Removing driving, might mess up the task planner?
-        #self.drive.clicked.connect(self.Engage)
 
         self.gui_publisher = rospy.Publisher('gui_plan', Path)
         self.actionclient = actionlib.SimpleActionClient('move_base', MoveBaseAction)
         self.pose_sub = rospy.Subscriber('RosAria/pose', Odometry, self.pose_callback)
-        self.pirate_sub = rospy.Subscriber('Pirates', Path, self.pirate_callback)
-        self.dead_pirate_sub = rospy.Subscriber('Dead', Path, self.dead_pirate_callback)
         #self.notificationPub = rospy.Publisher('notification', RideNotification)
         self.actionclient.wait_for_server()
         self.debug_stream = QTextEdit(self)
@@ -59,10 +56,6 @@ class Widgetti(QWidget):
         self.robomap = RoboMap(tf = self.tf, parent=self)
         rospy.sleep(1.0)
         self.taskplanner = TaskPlanner(parent = self)
-        self.delete_plan = QPushButton('Delete planz')
-        self.delete_plan.clicked.connect(self.robomap.deletePlan)
-        self.button_layout.addWidget(self.drive)
-        self.button_layout.addWidget(self.delete_plan)
 
         # task planner stuff
         self.open_manip = QPushButton('Open manipulator')
@@ -76,19 +69,27 @@ class Widgetti(QWidget):
         self.button_layout.addWidget(self.close_manip)
         self.button_layout.addWidget(self.taskplanning)
 
-        self.stop_robot = QPushButton('STOP!')
-        self.stop_robot.clicked.connect(self.robomap.stop_robot)
         self.button_layout.addWidget(self.open_manip)
         self.button_layout.addWidget(self.close_manip)
-        self.button_layout.addWidget(self.stop_robot)
 
         self.map_layout.addWidget(self.robomap)
         self.map_layout.addWidget(self.debug_stream)
         self.layout.addLayout(self.map_layout)
         self.layout.addLayout(self.button_layout)
-        self.layout.addWidget(QLabel('Click path points with mouze. Last point with rclickz'))
+        self.layout.addWidget(QLabel('Graphical interface to visualize stuff'))
         self.setLayout(self.layout)
         self.timer = 0
+		
+	def get_data_from_camera(self):
+		self.pirate_detector.activate_node()
+		while not self.pirate_detector.pirate_coordinates:
+			rospy.sleep(0.5)
+		for z in self.pirate_detector.pirate_coordinates.poses:
+            self.pirates.append(z)
+		for z in self.pirate_detector.dead_pirate_coordinates.poses:
+            self.dead_pirates.append(z)
+        self.robomap.insert_to_map(self.dead_pirates)
+		return True
         
     def pirate_callback(self, data):
         if self.pirate_update:
@@ -112,42 +113,17 @@ class Widgetti(QWidget):
         self.pose = data
         
     def done_callback(self, status, result):
-        #if self.pirate_detector.move_goal is None:
-        #    return
-        #elif status == self.actionclient.get_state():
-        #    self.pirate_detector.move_goal = None
-        # Send notification to UI
-        #notification = RideNotification()
         if status is GoalStatus.RECALLED:
             print 'recalled'
-            #self.update_textbox('Goal Status', 'RECALLED (movement cancelled)')
-            #notification.level = RideNotification.DEBUG
-            #notification.msg = "Movement Cancelled"
         elif status is GoalStatus.SUCCEEDED:
             print 'success'
-            #self.taskplanner.state += 1
-            #self.taskplanner.explorer_pub = rospy.Publisher('explore_next_point', String, latch=False)
-            #notification.level = RideNotification.INFO
-            #notification.msg = "Movement Complete!"
-            #self.update_textbox('Goal Status' ,'SUCCEEDED')
-            #self.taskplanner.state = self.taskplanner.state + 1
         elif status is GoalStatus.REJECTED:
             print 'rejected'
-            #self.update_textbox('Goal Status', 'REJECTED')
-            #notification.level = RideNotification.WARN
-            #notification.msg = "Destination Rejected!"
         elif status is GoalStatus.ABORTED:
             print 'aborted'
-            #self.update_textbox('Goal Status', 'ABORTED')
-            #notification.level = RideNotification.ERROR
-            #notification.msg = "Movement Aborted!"
         else:
             print 'sumthing else'
             print goal_states.get(status)
-            #self.update_textbox('Goal Status', 'WTF? something else')
-            #notification.level = RideNotification.DEBUG
-            #notification.msg = "[GoTo] Odd Completion"
-        #self.notificationPub.publish(notification)
     
     def feedback(self, feedback):
         print 'in the feedback lol'
@@ -213,6 +189,7 @@ class Widgetti(QWidget):
             self.update_textbox('path coordinate_point:', (str(x) + ' ' + str(y)))
         self.gui_publisher.publish(path)
 
+		
 class RoboMap(QGraphicsView):
 
     map_change = Signal()
@@ -246,31 +223,6 @@ class RoboMap(QGraphicsView):
         self.mapitem = self.scene.addPixmap(qpix)
         self.mirror(self.mapitem)
         self.show()
-
-    def stop_robot(self):
-        plan = self.get_plan()
-        print 'Got plan'
-        if plan:
-            print 'Plan exists'
-            path = Path()
-            path.header.frame_id = "map"
-            path.header.stamp = rospy.Time.now()
-            for z in plan:
-                stamp = PoseStamped()
-                pos = z[0]
-                x = pos[0]
-                y = pos[1]
-                quaternion = z[1]
-                stamp.header.stamp = rospy.Time.now()
-                stamp.header.frame_id = "map"
-                stamp.pose.position.x = x
-                stamp.pose.position.y = y
-                stamp.pose.orientation.w = quaternion[3]
-                stamp.pose.orientation.z = quaternion[2]
-                path.poses.append(stamp)
-                break
-            self.parent.gui_publisher.publish(path)
-            self.deletePlan()
     
     def mirror(self, item):
         item.scale(-1, 1)
@@ -281,8 +233,6 @@ class RoboMap(QGraphicsView):
         self.h = msg.info.height
         self.resolution = msg.info.resolution
         self.origin = (msg.info.origin.position.x, msg.info.origin.position.y)
-        #print 'Origin at:' + str(msg.info.origin.position.x) + ' ' + str(msg.info.origin.position.y)
-        #self.parent.update_textbox('Origin at:', (str(msg.info.origin.position.x) + ' ' + str(msg.info.origin.position.y)))
         arr = np.array(msg.data, dtype=np.uint8, copy=False, order='C')
         arr = arr.reshape((self.h, self.w))
         img = QImage(arr.reshape((arr.shape[0] * arr.shape[1])), self.w, self.h, QImage.Format_Indexed8)
@@ -314,18 +264,6 @@ class RoboMap(QGraphicsView):
             return point_list
         else:
             return None
-
-    def deletePlan(self):
-        if self.polygon:
-            self.scene.removeItem(self.polygon)
-            self.polygon = None
-        if self.point:
-            self.scene.removeItem(self.point)
-            self.point = None
-        if self.points:
-            for z in self.points:
-                self.scene.removeItem(z)
-            self.points = None
 			
 	def update_map(self, dead_pirates):
 		for z in dead_pirates:
@@ -336,7 +274,6 @@ class RoboMap(QGraphicsView):
 			x = (((self.w/2) - porygon[z].x()) + (self.w/2)) * self.resolution + self.origin[0]
 			map_x = -((x - self.origin[0])/self.resolution) + self.w
 			self.draw_point(map_x, map_y, color=Qt.green)
-		
 
     def draw_point(self, x, y, color=Qt.magenta, rad=1.0, add_point=False):
         ell = self.scene.addEllipse(x-rad, y-rad, rad*2.0, rad*2.0, color, QBrush(Qt.SolidPattern))
@@ -348,53 +285,8 @@ class RoboMap(QGraphicsView):
             else:
                 self.points = [ell]
         return ell
-    
-    def mousePressEvent(self, e):
-        if e.button() == Qt.RightButton:
-            return
-        self.setMouseTracking(True)
-        
-    def mouseMoveEvent(self, e):
-        point = self.mapToScene(e.x(), e.y())
-        if self.point:
-            self.scene.removeItem(self.point)
-        self.point = self.draw_point(point.x(), point.y(), Qt.yellow, 1.0)
-        if self.polygon:
-            porygon = self.polygon.polygon()
-            if porygon.size() > 1:
-                porygon.replace(porygon.size()-1, QPointF(point.x(), point.y()))
-            else:
-                porygon.append(QPointF(point.x(), point.y()))
-            self.polygon.setPolygon(porygon)
-        else:
-            return
 
-    def wheelEvent(self, e):
-        e.ignore()
-        if e.delta() > 0:
-            self.scale(1.30, 1.30)
-        else:
-            self.scale(0.7, 0.7)
-    
-    def mouseReleaseEvent(self, e):
-        point = self.mapToScene(e.x(), e.y())
-        if e.button() == Qt.RightButton:
-            self.setMouseTracking(False)
-            self.draw_point(point.x(), point.y(), add_point=True)
-            return
-        if self.point:
-            self.scene.removeItem(self.point)
-            self.point = None
-        if self.polygon:
-            porygon = self.polygon.polygon()
-            porygon.append(QPointF(point.x(), point.y()))
-            self.polygon.setPolygon(porygon)
-            self.draw_point(point.x(), point.y(), add_point=True)
-        else:
-            self.polygon = self.scene.addPolygon(QPolygonF([QPointF(point.x(), point.y())]), Qt.red)
-            self.polygon.setZValue(1000.0)
-            self.draw_point(point.x(), point.y(), Qt.yellow, add_point=True)
-
+		
 class TaskPlanner():
 
 
@@ -403,14 +295,10 @@ class TaskPlanner():
         self.move_goal = None
         self.parent = parent
         self.manipulator = manip_topic
-        #self.subscriber = rospy.Subscriber(self.manipulator,upancyGrid, self.manipulatorCb)
         self.manipulator_action = rospy.Publisher(self.manipulator, Vector3, latch=False)
         self.driver = rospy.Publisher(driver_topic, Twist, latch=False)
         self.explorer_sub = rospy.Subscriber('/explore_point', PoseStamped, self.explorer_callback)
         self.explorer_pub = rospy.Publisher('explore_next_point', String, latch=False)
-        #self.manipulator_state = rospy.Subscriber(self.manipulator, String)
-        #self.parent.update_textbox('Task Planner', 'Task planner initialized')
-        #print 'Task planner initialized'
         rospy.sleep(1.0)
         self.home = [0.0, 0.0]
         self.exit = False
@@ -420,9 +308,11 @@ class TaskPlanner():
     def execute(self):
         if not self.parent.pirates:
             print 'NO PIRATES ASSHOLE!'
-            self.parent.pirate_update = True
-            self.explorer_pub.publish('Gimme sum coordinates, mate')
-            self.parent.update_textbox('Explorer', 'Asking next coordinates')
+            tmp = self.parent.get_data_from_camera()
+			if tmp:
+				print 'yay'
+            #self.explorer_pub.publish('Gimme sum coordinates, mate')
+            #self.parent.update_textbox('Explorer', 'Asking next coordinates')
             # Trying with just one movement, reassigned when action movement succeeded (done_callback or feedback)
             explorer_pub = None
             self.exit = False
