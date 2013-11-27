@@ -22,8 +22,8 @@ from move_base_msgs.msg import MoveBaseAction, MoveBaseGoal
 import actionlib
 from actionlib_msgs.msg import GoalStatus
 import sys
-sys.path.insert(0, '~/fuerte_workspace/fsr2013/hiekkalaatikko/pirate_detector/src')
-import pirate_detector
+sys.path.insert(0, '../../pirate_detector/src/')
+from pirate_detector import pirate_detector
 
 goal_states={0:'PENDING',1:'ACTIVE',2:'PREEMPTED',3:'SUCCEEDED',4:'ABORTED',5:'REJECTED',6:'PREEMPTING',7:'RECALLING',8:'RECALLED',9:'LOST'}
 
@@ -42,7 +42,7 @@ class Widgetti(QWidget):
         self.dead_pirate_update = False
         self.pose = None
         self.waiting = False
-		self.pirate_detector = pirate_detector() #Initializing pirate detector
+        self.pirate_detector = pirate_detector() #Initializing pirate detector
 
         self.setWindowTitle('Gui plannerz lol')
 
@@ -79,31 +79,17 @@ class Widgetti(QWidget):
         self.layout.addWidget(QLabel('Graphical interface to visualize stuff'))
         self.setLayout(self.layout)
         self.timer = 0
-		
-	def get_data_from_camera(self):
-		self.pirate_detector.activate_node()
-		while not self.pirate_detector.pirate_coordinates:
-			rospy.sleep(0.5)
-		for z in self.pirate_detector.pirate_coordinates.poses:
-            self.pirates.append(z)
-		for z in self.pirate_detector.dead_pirate_coordinates.poses:
-            self.dead_pirates.append(z)
-        self.robomap.insert_to_map(self.dead_pirates)
-		return True
         
-    def pirate_callback(self, data):
-        if self.pirate_update:
-            for z in data.poses:
-                self.pirates.append(z)
-            self.update_textbox('Number of pirates: ', str(len(self.pirates)))
-            self.pirate_update = False
-    
-    def dead_pirate_callback(self, data):
-        if self.dead_pirate_update:
-            for z in data.poses:
-                self.dead_pirates.append(z)
-            self.dead_pirate_update = False
-            self.robomap.insert_to_map(self.dead_pirates)
+    def get_data_from_camera(self):
+        self.pirate_detector.activate_node()
+        while not self.pirate_detector.pirate_coordinates:
+            rospy.sleep(0.5)
+        for z in self.pirate_detector.pirate_coordinates.poses:
+            self.pirates.append(z)
+        for z in self.pirate_detector.dead_pirate_coordinates.poses:
+            self.dead_pirates.append(z)
+        self.robomap.update_map(self.dead_pirates)
+        return True
 
     def update_textbox(self, header, txt):
         self.debug_stream.insertPlainText(header + '\n')
@@ -189,7 +175,7 @@ class Widgetti(QWidget):
             self.update_textbox('path coordinate_point:', (str(x) + ' ' + str(y)))
         self.gui_publisher.publish(path)
 
-		
+        
 class RoboMap(QGraphicsView):
 
     map_change = Signal()
@@ -264,16 +250,15 @@ class RoboMap(QGraphicsView):
             return point_list
         else:
             return None
-			
-	def update_map(self, dead_pirates):
-		for z in dead_pirates:
-			x = z.pose.position.x
-			y = z.pose.position.y
-			#transform pose coordinates to map coordinates
-			map_y = (y - self.origin[1])/self.resolution
-			x = (((self.w/2) - porygon[z].x()) + (self.w/2)) * self.resolution + self.origin[0]
-			map_x = -((x - self.origin[0])/self.resolution) + self.w
-			self.draw_point(map_x, map_y, color=Qt.green)
+            
+    def update_map(self, dead_pirates):
+        for z in dead_pirates:
+            x = z.pose.position.x
+            y = z.pose.position.y
+            #transform pose coordinates to map coordinates
+            map_y = (y - self.origin[1])/self.resolution
+            map_x = -((x - self.origin[0])/self.resolution) + self.w
+            self.draw_point(map_x, map_y, color=Qt.green)
 
     def draw_point(self, x, y, color=Qt.magenta, rad=1.0, add_point=False):
         ell = self.scene.addEllipse(x-rad, y-rad, rad*2.0, rad*2.0, color, QBrush(Qt.SolidPattern))
@@ -286,7 +271,7 @@ class RoboMap(QGraphicsView):
                 self.points = [ell]
         return ell
 
-		
+        
 class TaskPlanner():
 
 
@@ -309,8 +294,8 @@ class TaskPlanner():
         if not self.parent.pirates:
             print 'NO PIRATES ASSHOLE!'
             tmp = self.parent.get_data_from_camera()
-			if tmp:
-				print 'yay'
+            if tmp:
+                print 'yay'
             #self.explorer_pub.publish('Gimme sum coordinates, mate')
             #self.parent.update_textbox('Explorer', 'Asking next coordinates')
             # Trying with just one movement, reassigned when action movement succeeded (done_callback or feedback)
