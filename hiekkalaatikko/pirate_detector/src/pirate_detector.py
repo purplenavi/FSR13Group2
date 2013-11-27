@@ -133,7 +133,7 @@ class pirate_detector:
                 y = -datapoint[0]
                 z = datapoint[1]
                 if abs(z) > 0.10:
-                    print 'Dead pirate HIGH!'
+                    print 'Dead pirate HIGH! ('+str(abs(z))+')'
                     continue
                 insert_pirate = True
                 for i in tmp:

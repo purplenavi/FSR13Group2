@@ -38,6 +38,7 @@ class Widgetti(QWidget):
 
         self.pirates = []
         self.dead_pirates = []
+        self.dead_pirate_objects = []
         self.pirate_update = True
         self.dead_pirate_update = False
         self.pose = None
@@ -48,7 +49,7 @@ class Widgetti(QWidget):
 
         self.gui_publisher = rospy.Publisher('gui_plan', Path)
         self.actionclient = actionlib.SimpleActionClient('move_base', MoveBaseAction)
-        self.pose_sub = rospy.Subscriber('RosAria/pose', Odometry, self.pose_callback)
+        
         #self.notificationPub = rospy.Publisher('notification', RideNotification)
         self.actionclient.wait_for_server()
         self.debug_stream = QTextEdit(self)
@@ -79,8 +80,12 @@ class Widgetti(QWidget):
         self.layout.addWidget(QLabel('Graphical interface to visualize stuff'))
         self.setLayout(self.layout)
         self.timer = 0
+        self.pose_sub = rospy.Subscriber('RosAria/pose', Odometry, self.pose_callback)
         
     def get_data_from_camera(self):
+        for z in self.dead_pirate_objects:
+            self.robomap.scene.removeItem(z)
+        self.dead_pirate_objects = None
         self.pirate_detector.activate_node()
         while not self.pirate_detector.pirate_coordinates:
             rospy.sleep(0.5)
@@ -100,12 +105,12 @@ class Widgetti(QWidget):
             self.robomap.scene.removeItem(self.robomap.point)
             self.robomap.point = None
         self.pose = data
-        x = self.pose.pose.position.x
-        y = self.pose.pose.position.y
+        x = self.pose.pose.pose.position.x
+        y = self.pose.pose.pose.position.y
         #transform pose coordinates to map coordinates
-        map_y = (y - self.origin[1])/self.resolution
-        map_x = -((x - self.origin[0])/self.resolution) + self.w
-        self.robomap.point = self.robomap.draw_point(map_x, map_y, color=Qt.blue, rad=3.0, message='Robot point is now ')
+        map_y = (y - self.robomap.origin[1])/self.robomap.resolution
+        map_x = -((x - self.robomap.origin[0])/self.robomap.resolution) + self.robomap.w
+        self.robomap.point = self.robomap.draw_point(map_x, map_y, color=Qt.blue, rad=3.0)
         
     def done_callback(self, status, result):
         if status is GoalStatus.RECALLED:
@@ -261,13 +266,15 @@ class RoboMap(QGraphicsView):
             return None
             
     def update_map(self, dead_pirates):
+        tmp = []
         for z in dead_pirates:
             x = z.pose.position.x
             y = z.pose.position.y
             #transform pose coordinates to map coordinates
             map_y = (y - self.origin[1])/self.resolution
             map_x = -((x - self.origin[0])/self.resolution) + self.w
-            self.draw_point(map_x, map_y, color=Qt.red)
+            tmp.append(self.draw_point(map_x, map_y, color=Qt.red))
+        self.parent.dead_pirate_objects = tmp
 
     def draw_point(self, x, y, color=Qt.magenta, rad=1.0, add_point=False, message=None):
         ell = self.scene.addEllipse(x-rad, y-rad, rad*2.0, rad*2.0, color, QBrush(Qt.SolidPattern))
@@ -395,10 +402,10 @@ class TaskPlanner():
     def drop_figure(self):
         self.openManipulator()
         # Opening
-        rospy.sleep(0.5)
+        rospy.sleep(1.0)
         reverse_pose = self.parent.pose
         reverse_pose.pose.pose.position.x -= 0.2
-        self.reverse()
+        self.reverse(0.3)
         timer = 0
         while self.parent.waiting:
             print self.reverse_feedback(self.parent.pose, reverse_pose)
