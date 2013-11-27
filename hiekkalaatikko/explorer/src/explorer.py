@@ -9,6 +9,7 @@ from std_msgs.msg import String
 from tf.transformations import euler_from_quaternion,quaternion_from_euler
 import numpy as np
 import math
+import random
 
 """
 MUST check is it 0 or 100 the value given from laser when contains something.
@@ -29,6 +30,7 @@ class Explorer:
         self.map = None
         self.pose = None
         self.ends = []
+        self.weightLimit = 1500
         # Subscribers to deal with incoming data
         self.map_subscriber = rospy.Subscriber('/map', OccupancyGrid, self.laser_callback)
         self.camera_subscriber = rospy.Subscriber('/camera/rgb/image_mono', Image, self.detector_callback)
@@ -72,7 +74,7 @@ class Explorer:
         beamangle = robotangle - (self.angle / 2)
         step = 0.5
 
-		# Search end points
+        # Search end points
         self.ends = []
         
         # Mark area checked
@@ -107,9 +109,9 @@ class Explorer:
                     break
 
                 if x0 == x1 and y0 == y1:
-                	self.plot(x0,y0,True)
-                	break
-                      
+                    self.plot(x0,y0,True)
+                    break
+                  
                 e2 = 2 * err
                 if e2 > -dy: 
                     err = err - dy
@@ -124,28 +126,28 @@ class Explorer:
                     y0 = y0 + sy 
 
     def plot(self, x, y, end=False):
-    		
-    	if x < 0 or y < 0 or x >= self.width or y >= self.height:
-    		return False
-    	
+        
+        if x < 0 or y < 0 or x >= self.width or y >= self.height:
+            return False
+    
         if self.map[y][x] == 7:
             # Collided a wall, end drawing
             return False
 
         # Draw
         if end:
-        	# Mark scan end
-        	self.map[y][x] = 3
-        	
-        	# Append end coordinates to array
-        	coords = (x, y)
-        	if coords not in self.ends:
-        		self.ends.append(coords)
-        	
-        	return True
+            # Mark scan end
+            self.map[y][x] = 3
         
+            # Append end coordinates to array
+            coords = (x, y)
+            if coords not in self.ends:
+                self.ends.append(coords)
+        
+            return True
+    
         if self.map[y][x] == 0:
-        	self.map[y][x] = 1
+            self.map[y][x] = 1
         return True
 
 
@@ -205,19 +207,19 @@ class Explorer:
  
      
     def direction_from_point(self, x, y):
-    	radius = self.max_distance / self.resolution
-    	
-    	# Clamp area
-    	xMin = int(max(0, x - radius))
-    	yMin = int(max(0, y - radius))
-    	xMax = int(min(self.width - 1, x + radius))
-    	yMax = int(min(self.height - 1, y + radius))    	
-    	
-    	tempMap = np.zeros((yMax - yMin, xMax - xMin))
-    	
-    	step = 0.5
-    	
-    	for a in xrange(int(360 / step)):
+        radius = self.max_distance / self.resolution
+    
+        # Clamp area
+        xMin = int(max(0, x - radius))
+        yMin = int(max(0, y - radius))
+        xMax = int(min(self.width - 1, x + radius))
+        yMax = int(min(self.height - 1, y + radius))    	
+    
+        tempMap = np.zeros((yMax - yMin, xMax - xMin))
+    
+        step = 0.5
+    
+        for a in xrange(int(360 / step)):
             targetangle = math.radians(a * step)
             
             # Mark both ends of line
@@ -250,8 +252,8 @@ class Explorer:
                 self.plotMap(x0 - xMin,y0 - yMin, self.weightmap[y0][x0], tempMap)
 
                 if x0 == x1 and y0 == y1:
-					#self.plotMap(x0 - xMin,y0 - yMin, self.weightmap[y0][x0], tempMap)
-					break
+                    #self.plotMap(x0 - xMin,y0 - yMin, self.weightmap[y0][x0], tempMap)
+                    break
                       
                 e2 = 2 * err
                 if e2 > -dy: 
@@ -271,40 +273,48 @@ class Explorer:
         
         # Use the mask to calculate direction
         
-    	xWeight = 0
-    	yWeight = 0
-    	fullweight = 0
-    	
-    	for xv in xrange(0, len(tempMap[0])):
-    		for yv in xrange(0, len(tempMap)):
-    			val = tempMap[yv][xv]
-    			xWeight += (xv - x) * val
-    			yWeight += (yv - y) * val
-    			fullweight += val
+        xWeight = 0
+        yWeight = 0
+        fullweight = 0
+        xMid = x - xMin
+        yMid = y - yMin
+    
+        for xv in xrange(0, len(tempMap[0])):
+            for yv in xrange(0, len(tempMap)):
+                val = tempMap[yv][xv]
+                xWeight += (xv - xMid) * val
+                yWeight += (yv - yMid) * val
+                fullweight += val
 
-    	#print "Weights x: %d y: %d" % (xWeight, yWeight)
-    	
-    	return (math.atan2(yWeight, xWeight), fullweight)
-    	
+        """if fullweight > self.weightLimit:
+            self.drawTargetMap(tempMap)
+            #print "direction (%.2f %.2f)" % (xWeight / max(xWeight, yWeight), yWeight / max(xWeight, yWeight))
+            print "Weights x: %d y: %d" % (xWeight, yWeight)
+        """
+        
+        #print "Weights x: %d y: %d" % (xWeight, yWeight)
+    
+        return (math.atan2(yWeight, xWeight), fullweight)
+
     def isClear(self, x, y):
-    		
-    	if x < 0 or y < 0 or x >= self.width or y >= self.height:
-    		return False
-    	
+    
+        if x < 0 or y < 0 or x >= self.width or y >= self.height:
+            return False
+
         if self.map[y][x] == 7:
-			# Collided a wall, end drawing
-			return False
+            # Collided a wall, end drawing
+            return False
 
         return True
-        
+
     def drawTargetMap(self, map):
         mapString = ''
-    	for y in xrange(len(map)):
-    		for x in xrange(len(map[0])):
-    			mapString += '{:1.0f}'.format(map[y][x])
-    		mapString += '\n'
-    	
-    	print mapString
+        for y in xrange(len(map)):
+            for x in xrange(len(map[0])):
+                mapString += '{:1.0f}'.format(map[y][x])
+            mapString += '\n'
+
+        print mapString
 
     def get_next_point(self, algo=1):
 
@@ -338,15 +348,17 @@ class Explorer:
                 if value > 0 and value < 7:
                     cont = True
 
-            print "Random value: %d" % value
+            #print "Random value: %d" % value
             return p
 
         return (-1, -1)
-    
         
+    
     def get_next_pose(self):
     
         # Get a random point from searched area
+        # Pose is a tuple of type (x, y, direction)
+        # Direction is in radians
         p = (-1, -1, 0)
 
         value = 0
@@ -364,11 +376,11 @@ class Explorer:
         
             dir = self.direction_from_point(x, y)
         
-            # Check for weight map usability 
-            if dir[1] > 3000:
+            # Check for weight map usability
+            if dir[1] > self.weightLimit:
                 p = (x, y, dir[0])
                 cont = True
-                print "Weight: %d" % dir[1]
+                #print "Weight: %d" % dir[1]
 
         return p
 
