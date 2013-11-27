@@ -270,6 +270,13 @@ class RoboMap(QGraphicsView):
             else:
                 self.points = [ell]
         return ell
+        
+    def wheelEvent(self, e):
+        e.ignore()
+        if e.delta() > 0:
+            self.scale(1.30, 1.30)
+        else:
+            self.scale(0.7, 0.7)
 
         
 class TaskPlanner():
