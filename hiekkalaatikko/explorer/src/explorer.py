@@ -273,16 +273,18 @@ class Explorer:
         
     	xWeight = 0
     	yWeight = 0
+    	fullweight = 0
     	
     	for xv in xrange(0, len(tempMap[0])):
     		for yv in xrange(0, len(tempMap)):
     			val = tempMap[yv][xv]
     			xWeight += (xv - x) * val
     			yWeight += (yv - y) * val
-    	
+    			fullweight += val
+
     	#print "Weights x: %d y: %d" % (xWeight, yWeight)
     	
-    	return math.atan2(yWeight, xWeight)
+    	return (math.atan2(yWeight, xWeight), fullweight)
     	
     def isClear(self, x, y):
     		
@@ -340,7 +342,35 @@ class Explorer:
             return p
 
         return (-1, -1)
+    
+        
+    def get_next_pose(self):
+    
+        # Get a random point from searched area
+        p = (-1, -1, 0)
 
+        value = 0
+    
+        cont = False
+
+        while not cont: #p[0] < 0 and (value <= 0 or value > 6):
+            x = random.randrange(len(self.map[0]))
+            y = random.randrange(len(self.map))
+        
+            value = self.map[y][x]
+        
+            if value <= 0 or value > 6:
+                continue
+        
+            dir = self.direction_from_point(x, y)
+        
+            # Check for weight map usability 
+            if dir[1] > 3000:
+                p = (x, y, dir[0])
+                cont = True
+                print "Weight: %d" % dir[1]
+
+        return p
 
 
 if __name__ == "__main__":
