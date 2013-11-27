@@ -149,7 +149,7 @@ class Explorer:
         return True
 
 
-    def get_next_point(self, msg):
+    def calculate_weightmap(self, msg):
         if self.map is None or self.pose is None or self.resolution is None:
             print 'Cannot get next point, Explorer not initialized yet'
             return
@@ -162,108 +162,48 @@ class Explorer:
             return None
         weightmap = np.zeros((len(self.map),len(self.map[0])))
         # Check smallest distance from walls, obstacles or prechecked point for each zero point
-        print 'Starting weightmap calculation'
+        print 'Starting weightmap calculation, unexplored: ' + str(len(unexplored[0]))
+        
+        searchdistance = 8
+        
         for i in range(len(unexplored[0])):
             x = unexplored[1][i]
             y = unexplored[0][i]
             it = 1
-            mindist = len(weightmap)
-            while y+it < len(weightmap) and it < 5:
+            mindist = len(self.weightmap)
+            while y+it < len(self.weightmap) and it < searchdistance:
                 if self.map[y+it][x] > 0:
                     break
                 it += 1
             if mindist > it:
                 mindist = it
             it = 1
-            while it < mindist and y-it >= 0 and it < 5:
+            while it < mindist and y-it >= 0 and it < searchdistance:
                 if self.map[y-it][x] > 0:
                     break
                 it += 1
             if mindist > it:
                 mindist = it
             it = 1
-            while it < mindist and x+it < len(weightmap[0]) and it < 5:
+            while it < mindist and x+it < len(self.weightmap[0]) and it < searchdistance:
                 if self.map[y][x+it] > 0:
                     break
                 it += 1
             if mindist > it:
                 mindist = it
             it = 1
-            while it < mindist and x-it >= 0 and it < 5:
+            while it < mindist and x-it >= 0 and it < searchdistance:
                 if self.map[y][x-it] > 0:
                     break
                 it += 1
-            if mindist < it:
+            if mindist > it:
                 mindist = it
-            weightmap[y][x] = mindist
-            if weightmap[y][x] >= 5:
-                break
+            self.weightmap[y][x] = mindist
+            if self.weightmap[y][x] >= searchdistance:
+                continue
         print 'Weightmap calculated'
-        # Get maximum valued point that ain't behind wall (no 2 in map in direct path)
-        new_points = np.where(weightmap==weightmap.max())
-        # x and y are cell indexes here
-        x = None
-        y = None
-        while weightmap.max() > 0 and len(new_points) > 0:
-            for i in range(len(new_points[0])):
-                distance = math.sqrt(math.pow(new_points[1][i]-self.pose.position.x,2)+math.pow(new_points[0][i]-self.pose.position.y,2))
-                angle = math.atan2(new_points[0][i]-self.pose.position.y,new_points[1][i]-self.pose.position.x)
-                x = new_points[0][i]
-                y = new_points[1][i]
-                for j in range(int(math.ceil(distance))): # loop through every cell in the way
-                    point = (self.pose.position.x + j*math.cos(angle), self.pose.position.y + j*math.sin(angle))
-                    y1 = int(math.floor(point[0]))
-                    y2 = int(math.ceil(point[0]))
-                    x1 = int(math.floor(point[1]))
-                    x2 = int(math.ceil(point[1]))
-                    # Check points rounded around this point ain't an obstacle
-                    if self.map[y1][x1] == 2:
-                        x = None
-                        y = None
-                        break
-                    if self.map[y1][x2] == 2:
-                        x = None
-                        y = None
-                        break
-                    if self.map[y2][x1] == 2:
-                        x = None
-                        y = None
-                        break
-                    if self.map[y2][x2] == 2:
-                        x = None
-                        y = None
-                        break
-                if x is not None and y is not None:
-                    break
-                else:
-                    weightmap[0][i] = 0
-                    weightmap[1][i] = 0
-                    new_points = np.where(weightmap==weightmap.max())
-            if x is not None and y is not None:
-                # There's no walls in the way, no need to check more points from weightmap
-                break
-        if x is None or y is None:
-            print 'Iz gone bad! No new point found but behind walls even though it should exist'
-            # Needs some recovery behavior, 'cause it might end up in here eventually
-            return None
-        else:
-            # Convert cell indexes to coordinates
-            x += int(len(self.map[0])/2)
-            y += int(len(self.map)/2)
-            x *= self.resolution
-            y *= self.resolution
-            # Create PoseStamped and return it
-            goal = PoseStamped()
-            quaternion = quaternion_from_euler(0, 0, math.atan2(y-self.pose.position.y, x-self.pose.position.x))
-            goal.header.frame_id = 'map'
-            goal.header.stamp = rospy.Time.now()
-            goal.pose.position.x = x
-            goal.pose.position.y = y 
-            goal.pose.orientation.w = quaternion[3]
-            goal.pose.orientation.z = quaternion[2]
-            print 'Next unexplored goal publish at ('+str(x)+', '+str(y)+'), calculation took '+str(rospy.get_time()-time_start)+' seconds..'
-            self.goal_pub.publish(goal)
-    
+ 
+     
     def direction_from_point(self, x, y):
     	radius = self.weighting_distance / self.resolution
     	
@@ -281,6 +221,19 @@ class Explorer:
     			val = self.weightmap[yv][xv]
     			xWeight += (xv - x) * val
     			yWeight += (yv - y) * val
+    			
+    def get_next_point(self):
+    	
+    	if not self.ends or len(self.ends) == 0:
+    		return (0, 0)
+    	
+    	# Go through vision endpoints and take the middle one
+    	
+    	index = int(len(self.ends) / 2)
+    	point = self.ends[index]
+    	
+    	return point
+
 
 
 
