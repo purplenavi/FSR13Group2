@@ -205,23 +205,105 @@ class Explorer:
  
      
     def direction_from_point(self, x, y):
-    	radius = self.weighting_distance / self.resolution
+    	radius = self.max_distance / self.resolution
     	
     	# Clamp area
     	xMin = int(max(0, x - radius))
     	yMin = int(max(0, y - radius))
     	xMax = int(min(self.width - 1, x + radius))
-    	yMax = int(min(self.height - 1, y + radius))
+    	yMax = int(min(self.height - 1, y + radius))    	
     	
+    	tempMap = np.zeros((yMax - yMin, xMax - xMin))
+    	
+    	step = 0.5
+    	
+    	for a in xrange(int(360 / step)):
+            targetangle = math.radians(a * step)
+            
+            # Mark both ends of line
+            x0 = x
+            y0 = y
+
+            x1 = int(x + self.max_distance / self.resolution * math.cos(targetangle))
+            y1 = int(y + self.max_distance / self.resolution * math.sin(targetangle))
+            
+            # Line drawing algorithm
+            dx = abs(x1 - x0)
+            dy = abs(y1 - y0)
+            sx = -1
+            sy = -1
+            if x0 < x1:
+                sx = 1
+
+            if y0 < y1:
+                sy = 1
+
+            err = dx - dy
+            
+            i = 0
+            while i < 1000:
+                i = i + 1
+
+                if not self.isClear(x0, y0):
+                    break
+                
+                self.plotMap(x0 - xMin,y0 - yMin, self.weightmap[y0][x0], tempMap)
+
+                if x0 == x1 and y0 == y1:
+					#self.plotMap(x0 - xMin,y0 - yMin, self.weightmap[y0][x0], tempMap)
+					break
+                      
+                e2 = 2 * err
+                if e2 > -dy: 
+                    err = err - dy
+                    x0 = x0 + sx
+
+                if x0 == x1 and y0 == y1:
+                    #self.plotMap(x0 - xMin,y0 - yMin, self.weightmap[y0][x0], tempMap)
+                    break
+
+                if e2 < dx:
+                    err = err + dx
+                    y0 = y0 + sy
+                    
+            
+        #self.drawTargetMap(tempMap)
+        
+        # Use the mask to calculate direction
+        
     	xWeight = 0
     	yWeight = 0
     	
-    	for xv in xrange(xMin, xMax):
-    		for yv in xrange(yMin, yMax):
-    			val = self.weightmap[yv][xv]
+    	for xv in xrange(0, len(tempMap[0])):
+    		for yv in xrange(0, len(tempMap)):
+    			val = tempMap[yv][xv]
     			xWeight += (xv - x) * val
     			yWeight += (yv - y) * val
-    			
+    	
+    	#print "Weights x: %d y: %d" % (xWeight, yWeight)
+    	
+    	return math.atan2(yWeight, xWeight)
+    	
+    def isClear(self, x, y):
+    		
+    	if x < 0 or y < 0 or x >= self.width or y >= self.height:
+    		return False
+    	
+        if self.map[y][x] == 7:
+			# Collided a wall, end drawing
+			return False
+
+        return True
+        
+    def drawTargetMap(self, map):
+        mapString = ''
+    	for y in xrange(len(map)):
+    		for x in xrange(len(map[0])):
+    			mapString += '{:1.0f}'.format(map[y][x])
+    		mapString += '\n'
+    	
+    	print mapString
+
     def get_next_point(self):
     	
     	if not self.ends or len(self.ends) == 0:
