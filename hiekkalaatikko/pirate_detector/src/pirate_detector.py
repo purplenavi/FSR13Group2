@@ -28,17 +28,29 @@ class pirate_detector:
         #subscribe to image data
         
         self.pirates = []
-        self.pirate_coordinates = []
+        self.pirate_coordinates = None
         self.dead_pirates = []
-        self.dead_pirate_coordinates = []
+        self.dead_pirate_coordinates = None
         self.camera_publisher = rospy.Publisher('/ptu_servo_angles', Vector3, latch=False)
         self.pirate_publisher = rospy.Publisher('/Pirates', Path)
         self.dead_pirate_publisher = rospy.Publisher('/Dead', Path)
-        self.image_subscribe = rospy.Subscriber('/camera/rgb/image_mono', Image, self.image_callback)
-        self.point_cloud2_subscribe = rospy.Subscriber('/camera/depth/points', PointCloud2, self.pcl2_callback)
+        self.image_subscribe = None
+        self.point_cloud2_subscribe = None
         rospy.sleep(1.0)
         self.camera_publisher.publish(Vector3(x=0.0, y=115.0, z=90.0))
         self.tf = tf.TransformListener()
+		
+	def activate_node(self):
+		print 'Activating camera nodes'
+		self.image_subscribe = rospy.Subscriber('/camera/rgb/image_mono', Image, self.image_callback)
+		self.point_cloud2_subscribe = rospy.Subscriber('/camera/depth/points', PointCloud2, self.pcl2_callback)
+		self.pirate_coordinates = None
+		self.dead_pirate_coordinates = None
+		
+	def deactivate_node(self):
+		print 'Deactivating camera nodes'
+		self.image_subscribe = None
+		self.point_cloud2_subscribe = None
         
     def pcl2_callback(self, data):
         path1 = Path()
@@ -133,8 +145,9 @@ class pirate_detector:
                     cv.Circle(self.cv_image, (int(pirate[0]), int(pirate[1])), 15, (255, 255, 255), cv.CV_FILLED)
         print 'Publishing coordinates'
         #cv.ShowImage(self.cv_window_name, self.cv_image)
-        self.pirate_publisher.publish(path1)
-        self.dead_pirate_publisher.publish(path2)
+		self.pirate_coordinates = path1
+		self.dead_pirate_coordinates = path2
+		self.deactivate_node()
         
     def image_callback(self, data):
         try:
@@ -241,15 +254,15 @@ class pirate_detector:
     def pointcloud2_to_xyz_array(self, cloud_msg, remove_nans=True):
         return self.get_xyz_points(self.pointcloud2_to_array(cloud_msg), remove_nans=remove_nans)
         
-def main(args):
-    rospy.init_node('pirate_detector')
-    rospy.sleep(1.0)
-    pd = pirate_detector()
-    try:
-        rospy.spin()
-    except KeyboardInterrupt:
-        print 'Shutting down pd node.'
-    cv.DestroyAllWindows()
-
-if __name__ == "__main__":
-    main(sys.argv)
+#def main(args):
+#    rospy.init_node('pirate_detector')
+#    rospy.sleep(1.0)
+#    pd = pirate_detector()
+#    try:
+#        rospy.spin()
+#    except KeyboardInterrupt:
+#        print 'Shutting down pd node.'
+#    cv.DestroyAllWindows()
+#
+#if __name__ == "__main__":
+#    main(sys.argv)
