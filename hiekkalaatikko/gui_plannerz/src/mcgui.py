@@ -22,7 +22,7 @@ from move_base_msgs.msg import MoveBaseAction, MoveBaseGoal
 import actionlib
 from actionlib_msgs.msg import GoalStatus
 import sys
-sys.path.insert(0, '/home/fuerte_workspace/fsr2013/hiekkalaatikko/pirate_detector/src')
+sys.path.insert(0, '~/fuerte_workspace/fsr2013/hiekkalaatikko/pirate_detector/src')
 import pirate_detector
 
 goal_states={0:'PENDING',1:'ACTIVE',2:'PREEMPTED',3:'SUCCEEDED',4:'ABORTED',5:'REJECTED',6:'PREEMPTING',7:'RECALLING',8:'RECALLED',9:'LOST'}
