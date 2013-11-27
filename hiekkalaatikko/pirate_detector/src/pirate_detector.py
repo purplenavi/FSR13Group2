@@ -22,23 +22,38 @@ class pirate_detector:
         #Give the opencv display window a name
         self.cv_window_name = 'OpenCVImage'
         #create the window and make it re-sizeable (second parameter 0)
-        #cv.NamedWindow(self.cv_window_name)
+        cv.NamedWindow(self.cv_window_name)
         #create the cv_bridge object
         self.bridge = CvBridge()
         #subscribe to image data
         
         self.pirates = []
-        self.pirate_coordinates = []
+        self.pirate_coordinates = None
         self.dead_pirates = []
-        self.dead_pirate_coordinates = []
+        self.dead_pirate_coordinates = None
         self.camera_publisher = rospy.Publisher('/ptu_servo_angles', Vector3, latch=False)
         self.pirate_publisher = rospy.Publisher('/Pirates', Path)
         self.dead_pirate_publisher = rospy.Publisher('/Dead', Path)
-        self.image_subscribe = rospy.Subscriber('/camera/rgb/image_mono', Image, self.image_callback)
-        self.point_cloud2_subscribe = rospy.Subscriber('/camera/depth/points', PointCloud2, self.pcl2_callback)
+        self.image_subscribe = None
+        self.point_cloud2_subscribe = None
         rospy.sleep(1.0)
         self.camera_publisher.publish(Vector3(x=0.0, y=115.0, z=90.0))
         self.tf = tf.TransformListener()
+        
+    def activate_node(self):
+        print 'Activating camera nodes'
+        self.image_subscribe = rospy.Subscriber('/camera/rgb/image_mono', Image, self.image_callback)
+        rospy.sleep(1.0)
+        self.point_cloud2_subscribe = rospy.Subscriber('/camera/depth/points', PointCloud2, self.pcl2_callback)
+        self.pirate_coordinates = None
+        self.dead_pirate_coordinates = None
+        
+    def deactivate_node(self):
+        print 'Deactivating camera nodes'
+        self.image_subscribe.unregister()
+        self.point_cloud2_subscribe.unregister()
+        self.image_subscribe = None
+        self.point_cloud2_subscribe = None
         
     def pcl2_callback(self, data):
         path1 = Path()
@@ -70,6 +85,9 @@ class pirate_detector:
                 x = datapoint[2]
                 y = -datapoint[0]
                 z = datapoint[1]
+                if abs(z) > 0.20:
+                    print 'Pirate is HIGH!'
+                    continue
                 insert_pirate = True
                 for i in tmp:
                     if abs(x-i[0]) < 0.1 or abs(y-i[1]) < 0.1:
@@ -114,6 +132,9 @@ class pirate_detector:
                 x = datapoint[2]
                 y = -datapoint[0]
                 z = datapoint[1]
+                if abs(z) > 0.10:
+                    print 'Dead pirate HIGH!'
+                    continue
                 insert_pirate = True
                 for i in tmp:
                     if abs(x-i[0]) < 0.1 or abs(y-i[1]) < 0.1:
@@ -132,9 +153,10 @@ class pirate_detector:
                     tmp.append([x, y])
                     cv.Circle(self.cv_image, (int(pirate[0]), int(pirate[1])), 15, (255, 255, 255), cv.CV_FILLED)
         print 'Publishing coordinates'
-        #cv.ShowImage(self.cv_window_name, self.cv_image)
-        self.pirate_publisher.publish(path1)
-        self.dead_pirate_publisher.publish(path2)
+        cv.ShowImage(self.cv_window_name, self.cv_image)
+        self.pirate_coordinates = path1
+        self.dead_pirate_coordinates = path2
+        self.deactivate_node()
         
     def image_callback(self, data):
         try:
@@ -161,17 +183,6 @@ class pirate_detector:
         while contour_pointer is not None:
             contour = contour_pointer[ : ]
             centre_of_mass = self.find_centre_of_mass(contour)
-            rotated_contour = self.rotate_contour(contour, centre_of_mass, 0)
-            lst = []
-    
-            for i in rotated_contour:
-                lst.append(list(i))
-            rotated_contour = []
-    
-            for i in lst:
-                i[0] = int(i[0])
-                i[1] = int(i[1])
-                rotated_contour.append(tuple(i))
             #self.draw_contour(cv_image, rotated_contour, cv.CV_RGB( 255 , 255 , 255 ), 5)
             x, y, w, h = cv.BoundingRect(contour)
             if h > w and h > 20 and h < 90:
@@ -241,15 +252,15 @@ class pirate_detector:
     def pointcloud2_to_xyz_array(self, cloud_msg, remove_nans=True):
         return self.get_xyz_points(self.pointcloud2_to_array(cloud_msg), remove_nans=remove_nans)
         
-def main(args):
-    rospy.init_node('pirate_detector')
-    rospy.sleep(1.0)
-    pd = pirate_detector()
-    try:
-        rospy.spin()
-    except KeyboardInterrupt:
-        print 'Shutting down pd node.'
-    cv.DestroyAllWindows()
-
-if __name__ == "__main__":
-    main(sys.argv)
+#def main(args):
+#    rospy.init_node('pirate_detector')
+#    rospy.sleep(1.0)
+#    pd = pirate_detector()
+#    try:
+#        rospy.spin()
+#    except KeyboardInterrupt:
+#        print 'Shutting down pd node.'
+#    cv.DestroyAllWindows()
+#
+#if __name__ == "__main__":
+#    main(sys.argv)
