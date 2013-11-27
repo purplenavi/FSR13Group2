@@ -96,7 +96,16 @@ class Widgetti(QWidget):
         self.debug_stream.insertPlainText(txt+'\n')
         
     def pose_callback(self, data):
+        if self.robomap.point:
+            self.robomap.scene.removeItem(self.robomap.point)
+            self.robomap.point = None
         self.pose = data
+        x = self.pose.pose.position.x
+        y = self.pose.pose.position.y
+        #transform pose coordinates to map coordinates
+        map_y = (y - self.origin[1])/self.resolution
+        map_x = -((x - self.origin[0])/self.resolution) + self.w
+        self.robomap.point = self.robomap.draw_point(map_x, map_y, color=Qt.blue, rad=3.0, message='Robot point is now ')
         
     def done_callback(self, status, result):
         if status is GoalStatus.RECALLED:
@@ -258,11 +267,12 @@ class RoboMap(QGraphicsView):
             #transform pose coordinates to map coordinates
             map_y = (y - self.origin[1])/self.resolution
             map_x = -((x - self.origin[0])/self.resolution) + self.w
-            self.draw_point(map_x, map_y, color=Qt.green)
+            self.draw_point(map_x, map_y, color=Qt.red)
 
-    def draw_point(self, x, y, color=Qt.magenta, rad=1.0, add_point=False):
+    def draw_point(self, x, y, color=Qt.magenta, rad=1.0, add_point=False, message=None):
         ell = self.scene.addEllipse(x-rad, y-rad, rad*2.0, rad*2.0, color, QBrush(Qt.SolidPattern))
-        self.parent.update_textbox('Point added:', (str(x) + ' ' + str(y)))
+        if message:
+            self.parent.update_textbox(message, (str(x) + ' ' + str(y)))
         ell.setZValue(2000.0)
         if add_point:
             if self.points:
