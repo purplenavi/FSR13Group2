@@ -263,6 +263,25 @@ class Explorer:
             goal.pose.orientation.z = quaternion[2]
             print 'Next unexplored goal publish at ('+str(x)+', '+str(y)+'), calculation took '+str(rospy.get_time()-time_start)+' seconds..'
             self.goal_pub.publish(goal)
+    
+    def direction_from_point(self, x, y):
+    	radius = self.weighting_distance / self.resolution
+    	
+    	# Clamp area
+    	xMin = int(max(0, x - radius))
+    	yMin = int(max(0, y - radius))
+    	xMax = int(min(self.width - 1, x + radius))
+    	yMax = int(min(self.height - 1, y + radius))
+    	
+    	xWeight = 0
+    	yWeight = 0
+    	
+    	for xv in xrange(xMin, xMax):
+    		for yv in xrange(yMin, yMax):
+    			val = self.weightmap[yv][xv]
+    			xWeight += (xv - x) * val
+    			yWeight += (yv - y) * val
+
 
 
 if __name__ == "__main__":
