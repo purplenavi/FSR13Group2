@@ -304,18 +304,42 @@ class Explorer:
     	
     	print mapString
 
-    def get_next_point(self):
-    	
-    	if not self.ends or len(self.ends) == 0:
-    		return (0, 0)
-    	
-    	# Go through vision endpoints and take the middle one
-    	
-    	index = int(len(self.ends) / 2)
-    	point = self.ends[index]
-    	
-    	return point
+    def get_next_point(self, algo=1):
 
+        if algo == 1:
+            if not self.ends or len(self.ends) == 0:
+                return (-1, -1)
+
+            # Go through vision endpoints and take the middle one
+
+            index = int(len(self.ends) / 2)
+            point = self.ends[index]
+
+            return point
+
+        elif algo == 2:
+            # Get a random point from searched area
+            p = (-1, -1)
+
+            value = 0
+            
+            cont = False
+
+            while not cont: #p[0] < 0 and (value <= 0 or value > 6):
+                x = random.randrange(len(self.map[0]))
+                y = random.randrange(len(self.map))
+
+                p = (x, y)
+                
+                value = self.map[p[1]][p[0]]
+
+                if value > 0 and value < 7:
+                    cont = True
+
+            print "Random value: %d" % value
+            return p
+
+        return (-1, -1)
 
 
 
