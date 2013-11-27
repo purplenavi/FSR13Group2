@@ -37,18 +37,27 @@ class pirate_detector:
         self.image_subscribe = None
         self.point_cloud2_subscribe = None
         rospy.sleep(1.0)
-        self.camera_publisher.publish(Vector3(x=0.0, y=115.0, z=90.0))
+        self.tilt_camera()
         self.tf = tf.TransformListener()
+        self.image_counter = 0
+        self.point_counter = 0
+        self.last_pcl = None
         
     def activate_node(self):
+        print self.tilt_camera()
         print 'Activating camera nodes'
-        self.image_subscribe = rospy.Subscriber('/camera/rgb/image_mono', Image, self.image_callback)
-        rospy.sleep(1.0)
         self.point_cloud2_subscribe = rospy.Subscriber('/camera/depth/points', PointCloud2, self.pcl2_callback)
+        rospy.sleep(1.0)
+        self.image_subscribe = rospy.Subscriber('/camera/rgb/image_mono', Image, self.image_callback)
         self.pirate_coordinates = None
         self.dead_pirate_coordinates = None
-        
+
+    def tilt_camera(self,x=0.0,y=115.0,z=90.0):
+        self.camera_publisher.publish(Vector3(x, y, z))
+
     def deactivate_node(self):
+        self.image_counter = 0
+        self.point_counter = 0
         print 'Deactivating camera nodes'
         self.image_subscribe.unregister()
         self.point_cloud2_subscribe.unregister()
@@ -56,13 +65,18 @@ class pirate_detector:
         self.point_cloud2_subscribe = None
         
     def pcl2_callback(self, data):
+        print 'PCL callback gotten'
+        self.last_pcl = data
+        
+    def pcl2_parser(self):
+        print 'Parsing pcl and image data'
         path1 = Path()
         path2 = Path()
         tmp = [[0.0,0.0]]
         while self.pirates:
             print 'WE has piratez'
             pirate = self.pirates.pop()
-            cloud_data = pointcloud2_to_array(data)
+            cloud_data = pointcloud2_to_array(self.last_pcl)
             found = False
             for x in [0,1,-1,2,-2,3,-3,4,-4,5,-5]:
                 for y in [0,1,-1,2,-2,3,-3,4,-4,5,-5]:
@@ -109,7 +123,7 @@ class pirate_detector:
         tmp = [[0.0,0.0]]
         while self.dead_pirates:
             pirate = self.dead_pirates.pop()
-            cloud_data = pointcloud2_to_array(data)
+            cloud_data = pointcloud2_to_array(self.last_pcl)
             found = False
             for x in [0,1,-1,2,-2,3,-3,4,-4,5,-5]:
                 for y in [0,1,-1,2,-2,3,-3,4,-4,5,-5]:
@@ -159,43 +173,58 @@ class pirate_detector:
         self.deactivate_node()
         
     def image_callback(self, data):
-        try:
-            #convert image to opencv format
-            cv_image = self.bridge.imgmsg_to_cv(data, "mono8")
-        except CvBridgeError, e:
-            print e
-        #Canny detecting
-        cv.EqualizeHist(cv_image, cv_image)
-        cv.Smooth(cv_image, cv_image, cv.CV_GAUSSIAN, 11, 11)
-        yuv = cv.CreateImage(cv.GetSize(cv_image), 8, 3)
-        gray = cv.CreateImage(cv.GetSize(cv_image), 8, 1)
-        canny = cv.CreateImage(cv.GetSize(cv_image),8, 1)
-        cv.Canny(cv_image,canny,50,250)
-        bwimage = cv.CreateImage(cv.GetSize(canny), 8, 1)
-        cv.Threshold(canny, bwimage, 128, 255, cv.CV_THRESH_BINARY)
-    
-        a = np.asarray(canny[:,:])
-        cv.FloodFill(canny, (0, 0), 0)
-        storage = cv.CreateMemStorage()
-        contour_pointer = cv.FindContours(canny, storage, method=cv.CV_CHAIN_APPROX_TC89_KCOS,mode=cv.CV_RETR_EXTERNAL)
-        contour_areas = []
-    
-        while contour_pointer is not None:
-            contour = contour_pointer[ : ]
-            centre_of_mass = self.find_centre_of_mass(contour)
-            #self.draw_contour(cv_image, rotated_contour, cv.CV_RGB( 255 , 255 , 255 ), 5)
-            x, y, w, h = cv.BoundingRect(contour)
-            if h > w and h > 20 and h < 90:
-                self.pirates.append((self.get_center_coordinates(x, y, h, w)))
-                #cv.Rectangle(cv_image, (x, y), (x+w, y+h), (0, 255, 0), cv.CV_FILLED)
-            elif w > h and w > 20 and w < 90 and (w-h) > 10:
-                self.dead_pirates.append((self.get_center_coordinates(x, y, h, w)))
-                #cv.Rectangle(cv_image, (x, y), (x+w, y+h), (0, 100, 0), cv.CV_FILLED)
-            contour_pointer = contour_pointer.h_next()
-        print self.pirates
-        self.cv_image = cv_image
-        #cv.ShowImage(self.cv_window_name, cv_image)
-        cv.WaitKey(3000)
+        if self.image_counter > 10:
+            print 'Image callback '
+            try:
+                #convert image to opencv format
+                cv_image = self.bridge.imgmsg_to_cv(data, "mono8")
+            except CvBridgeError, e:
+                print e
+            print 'Converted to openCV format'
+            #Canny detecting
+            cv.EqualizeHist(cv_image, cv_image)
+            cv.Smooth(cv_image, cv_image, cv.CV_GAUSSIAN, 11, 11)
+            yuv = cv.CreateImage(cv.GetSize(cv_image), 8, 3)
+            gray = cv.CreateImage(cv.GetSize(cv_image), 8, 1)
+            canny = cv.CreateImage(cv.GetSize(cv_image),8, 1)
+            cv.Canny(cv_image,canny,50,250)
+            bwimage = cv.CreateImage(cv.GetSize(canny), 8, 1)
+            cv.Threshold(canny, bwimage, 128, 255, cv.CV_THRESH_BINARY)
+            print 'Canny filtered, finding contours'
+            a = np.asarray(canny[:,:])
+            print 'numpy array created'
+            cv.FloodFill(canny, (0, 0), 0)
+            print 'canny image filled'
+            storage = cv.CreateMemStorage()
+            print 'memstorage created'
+            contour_pointer = cv.FindContours(canny, storage, method=cv.CV_CHAIN_APPROX_TC89_KCOS,mode=cv.CV_RETR_EXTERNAL)
+            contour_areas = []
+            
+            print 'Contours found'
+        
+            while contour_pointer is not None:
+                contour = contour_pointer[ : ]
+                centre_of_mass = self.find_centre_of_mass(contour)
+                #self.draw_contour(cv_image, rotated_contour, cv.CV_RGB( 255 , 255 , 255 ), 5)
+                x, y, w, h = cv.BoundingRect(contour)
+                if h > w and h > 20 and h < 90:
+                    self.pirates.append((self.get_center_coordinates(x, y, h, w)))
+                    #cv.Rectangle(cv_image, (x, y), (x+w, y+h), (0, 255, 0), cv.CV_FILLED)
+                elif w > h and w > 20 and w < 90 and (w-h) > 10:
+                    self.dead_pirates.append((self.get_center_coordinates(x, y, h, w)))
+                    #cv.Rectangle(cv_image, (x, y), (x+w, y+h), (0, 100, 0), cv.CV_FILLED)
+                contour_pointer = contour_pointer.h_next()
+                print 'Contour done'
+            print self.pirates
+            self.cv_image = cv_image
+            #cv.ShowImage(self.cv_window_name, cv_image)
+            print 'Image done'
+            self.image_counter = 0
+            if self.pirates and self.last_pcl is not None:
+                self.pcl2_parser()
+            cv.WaitKey(3000)
+        self.image_counter += 1
+        print self.image_counter
         
     #Code samples fetched from http://www.pirobot.org/blog/0016/
     # Draw contour from list of tuples.
