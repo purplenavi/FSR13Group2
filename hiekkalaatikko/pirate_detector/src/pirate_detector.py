@@ -31,16 +31,16 @@ class pirate_detector:
         self.pirate_coordinates = None
         self.dead_pirates = []
         self.dead_pirate_coordinates = None
-        self.camera_publisher = rospy.Publisher('/ptu_servo_angles', Vector3, latch=False)
+        self.camera_publisher = rospy.Publisher('/ptu_servo_angles', Vector3)
         self.pirate_publisher = rospy.Publisher('/Pirates', Path)
         self.dead_pirate_publisher = rospy.Publisher('/Dead', Path)
         self.image_subscribe = None
         self.point_cloud2_subscribe = None
         rospy.sleep(1.0)
+        # camera link transformation (maybe remeasure these?!)
+        # self.camera_offset = [x y z tilt]
+        self.camera_offset = [0.135, 0, -0.31, 115.0]
         self.tilt_camera()
-        self.tf = tf.TransformListener()
-        self.image_counter = 0
-        self.point_counter = 0
         self.last_pcl = None
         
     def activate_node(self):
@@ -53,11 +53,10 @@ class pirate_detector:
         self.dead_pirate_coordinates = None
 
     def tilt_camera(self,x=0.0,y=115.0,z=90.0):
+        self.camera_offset[3] = y
         self.camera_publisher.publish(Vector3(x, y, z))
 
     def deactivate_node(self):
-        self.image_counter = 0
-        self.point_counter = 0
         print 'Deactivating camera nodes'
         self.image_subscribe.unregister()
         self.point_cloud2_subscribe.unregister()
@@ -96,9 +95,11 @@ class pirate_detector:
                 #Create a P2P message to reach the figure
                 camerapoint = PoseStamped()
                 #z is depth in cloud data
-                x = datapoint[2]
-                y = -datapoint[0]
-                z = datapoint[1]
+                # camera_link -> base_link conversion via simple trigonometria
+                x = datapoint[2]*math.cos(self.camera_offset[3]-90)+self.camera_offset[0]
+                y = -datapoint[0]+self.camera_offset[1]
+                z = datapoint[1]*math.sin(self.camera_offset[3])+self.camera_offset[2]
+                print 'Alive pirate found at ('+str(x)+', '+str(y)+', '+str(z)+')'
                 if abs(z) > 0.20:
                     print 'Pirate is HIGH!'
                     continue
@@ -143,9 +144,11 @@ class pirate_detector:
                 #Create a P2P message to reach the figure
                 camerapoint = PoseStamped()
                 #z is depth in cloud data
-                x = datapoint[2]
-                y = -datapoint[0]
-                z = datapoint[1]
+                # camera_link -> base_link conversion via simple trigonometria
+                x = datapoint[2]*math.cos(self.camera_offset[3]-90.0)+self.camera_offset[0]
+                y = -datapoint[0]+self.camera_offset[1]
+                z = datapoint[1]*math.sin(self.camera_offset[3])+self.camera_offset[2]
+                print 'Dead pirate found at ('+str(x)+', '+str(y)+', '+str(z)+')'
                 if abs(z) > 0.10:
                     print 'Dead pirate HIGH! ('+str(abs(z))+')'
                     continue
@@ -170,61 +173,64 @@ class pirate_detector:
         cv.ShowImage(self.cv_window_name, self.cv_image)
         self.pirate_coordinates = path1
         self.dead_pirate_coordinates = path2
-        self.deactivate_node()
+        self.pirate_publisher.publish(path1)
+        self.dead_pirate_publisher(path2)
+        #self.deactivate_node() # no need for restart every time 
         
     def image_callback(self, data):
-        if self.image_counter > 10:
-            print 'Image callback '
-            try:
-                #convert image to opencv format
-                cv_image = self.bridge.imgmsg_to_cv(data, "mono8")
-            except CvBridgeError, e:
-                print e
-            print 'Converted to openCV format'
-            #Canny detecting
-            cv.EqualizeHist(cv_image, cv_image)
-            cv.Smooth(cv_image, cv_image, cv.CV_GAUSSIAN, 11, 11)
-            yuv = cv.CreateImage(cv.GetSize(cv_image), 8, 3)
-            gray = cv.CreateImage(cv.GetSize(cv_image), 8, 1)
-            canny = cv.CreateImage(cv.GetSize(cv_image),8, 1)
-            cv.Canny(cv_image,canny,50,250)
-            bwimage = cv.CreateImage(cv.GetSize(canny), 8, 1)
-            cv.Threshold(canny, bwimage, 128, 255, cv.CV_THRESH_BINARY)
-            print 'Canny filtered, finding contours'
-            a = np.asarray(canny[:,:])
-            print 'numpy array created'
-            cv.FloodFill(canny, (0, 0), 0)
-            print 'canny image filled'
-            storage = cv.CreateMemStorage()
-            print 'memstorage created'
-            contour_pointer = cv.FindContours(canny, storage, method=cv.CV_CHAIN_APPROX_TC89_KCOS,mode=cv.CV_RETR_EXTERNAL)
-            contour_areas = []
-            
-            print 'Contours found'
+        # Don't use data if it differs between image and point cloud too much
+        if (abs(self.pcl_data.header.stamp.secs - data.header.stamp.secs) > 5.0:
+            print 'Data difference too big ('+str(abs(self.pcl_data.header.stamp.secs - data.header.stamp.secs))+') so skipping the callback!'
+            return
+        print 'Image callback '
+        try:
+            #convert image to opencv format
+            cv_image = self.bridge.imgmsg_to_cv(data, "mono8")
+        except CvBridgeError, e:
+            print e
+        print 'Converted to openCV format'
+        #Canny detecting
+        cv.EqualizeHist(cv_image, cv_image)
+        cv.Smooth(cv_image, cv_image, cv.CV_GAUSSIAN, 11, 11)
+        yuv = cv.CreateImage(cv.GetSize(cv_image), 8, 3)
+        gray = cv.CreateImage(cv.GetSize(cv_image), 8, 1)
+        canny = cv.CreateImage(cv.GetSize(cv_image),8, 1)
+        cv.Canny(cv_image,canny,50,250)
+        bwimage = cv.CreateImage(cv.GetSize(canny), 8, 1)
+        cv.Threshold(canny, bwimage, 128, 255, cv.CV_THRESH_BINARY)
+        print 'Canny filtered, finding contours'
+        a = np.asarray(canny[:,:])
+        print 'numpy array created'
+        cv.FloodFill(canny, (0, 0), 0)
+        print 'canny image filled'
+        storage = cv.CreateMemStorage()
+        print 'memstorage created'
+        contour_pointer = cv.FindContours(canny, storage, method=cv.CV_CHAIN_APPROX_TC89_KCOS,mode=cv.CV_RETR_EXTERNAL)
+        contour_areas = []
         
-            while contour_pointer is not None:
-                contour = contour_pointer[ : ]
-                centre_of_mass = self.find_centre_of_mass(contour)
-                #self.draw_contour(cv_image, rotated_contour, cv.CV_RGB( 255 , 255 , 255 ), 5)
-                x, y, w, h = cv.BoundingRect(contour)
-                if h > w and h > 20 and h < 90:
-                    self.pirates.append((self.get_center_coordinates(x, y, h, w)))
-                    #cv.Rectangle(cv_image, (x, y), (x+w, y+h), (0, 255, 0), cv.CV_FILLED)
-                elif w > h and w > 20 and w < 90 and (w-h) > 10:
-                    self.dead_pirates.append((self.get_center_coordinates(x, y, h, w)))
-                    #cv.Rectangle(cv_image, (x, y), (x+w, y+h), (0, 100, 0), cv.CV_FILLED)
-                contour_pointer = contour_pointer.h_next()
-                print 'Contour done'
-            print self.pirates
-            self.cv_image = cv_image
-            #cv.ShowImage(self.cv_window_name, cv_image)
-            print 'Image done'
-            self.image_counter = 0
-            if self.pirates and self.last_pcl is not None:
-                self.pcl2_parser()
-            cv.WaitKey(3000)
-        self.image_counter += 1
-        print self.image_counter
+        print 'Contours found'
+    
+        while contour_pointer is not None:
+            contour = contour_pointer[ : ]
+            centre_of_mass = self.find_centre_of_mass(contour)
+            #self.draw_contour(cv_image, rotated_contour, cv.CV_RGB( 255 , 255 , 255 ), 5)
+            x, y, w, h = cv.BoundingRect(contour)
+            if h > w and h > 20 and h < 90:
+                self.pirates.append((self.get_center_coordinates(x, y, h, w)))
+                #cv.Rectangle(cv_image, (x, y), (x+w, y+h), (0, 255, 0), cv.CV_FILLED)
+            elif w > h and w > 20 and w < 90 and (w-h) > 10:
+                self.dead_pirates.append((self.get_center_coordinates(x, y, h, w)))
+                #cv.Rectangle(cv_image, (x, y), (x+w, y+h), (0, 100, 0), cv.CV_FILLED)
+            contour_pointer = contour_pointer.h_next()
+            print 'Contour done'
+        print self.pirates
+        self.cv_image = cv_image
+        #cv.ShowImage(self.cv_window_name, cv_image)
+        print 'Image done'
+        self.image_counter = 0
+        if self.pirates and self.last_pcl is not None:
+            self.pcl2_parser()
+        cv.WaitKey(100) # try every 0.1 secs
         
     #Code samples fetched from http://www.pirobot.org/blog/0016/
     # Draw contour from list of tuples.
@@ -281,15 +287,15 @@ class pirate_detector:
     def pointcloud2_to_xyz_array(self, cloud_msg, remove_nans=True):
         return self.get_xyz_points(self.pointcloud2_to_array(cloud_msg), remove_nans=remove_nans)
         
-#def main(args):
-#    rospy.init_node('pirate_detector')
-#    rospy.sleep(1.0)
-#    pd = pirate_detector()
-#    try:
-#        rospy.spin()
-#    except KeyboardInterrupt:
-#        print 'Shutting down pd node.'
-#    cv.DestroyAllWindows()
-#
-#if __name__ == "__main__":
-#    main(sys.argv)
+def main(args):
+    rospy.init_node('pirate_detector')
+    rospy.sleep(1.0)
+    pd = pirate_detector()
+    try:
+        rospy.spin()
+    except KeyboardInterrupt:
+        print 'Shutting down pd node.'
+    cv.DestroyAllWindows()
+
+if __name__ == "__main__":
+    main(sys.argv)
