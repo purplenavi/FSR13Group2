@@ -13,16 +13,16 @@ from python_qt_binding.QtGui import QWidget, QMessageBox, QTextEdit, QLabel, QPi
 from geometry_msgs.msg import PoseStamped, Vector3, Twist, PoseWithCovarianceStamped
 from nav_msgs.msg import Odometry
 from std_msgs.msg import String
-from cv_bridge import CvBridge, CvBridgeError
+#from cv_bridge import CvBridge, CvBridgeError
 from sensor_msgs.msg import Image, PointCloud2, PointField
 from std_msgs.msg import String
 import os
-import cv
+#import cv
 from move_base_msgs.msg import MoveBaseAction, MoveBaseGoal
 import actionlib
 from actionlib_msgs.msg import GoalStatus
 import sys
-sys.path.insert(0, '../../pirate_detector/src/')
+#sys.path.insert(0, '../../pirate_detector/src/')
 #from pirate_detector import pirate_detector
 
 goal_states={0:'PENDING',1:'ACTIVE',2:'PREEMPTED',3:'SUCCEEDED',4:'ABORTED',5:'REJECTED',6:'PREEMPTING',7:'RECALLING',8:'RECALLED',9:'LOST'}
@@ -81,6 +81,10 @@ class Widgetti(QWidget):
         self.setLayout(self.layout)
         self.timer = 0
         self.pose_sub = rospy.Subscriber('RosAria/pose', Odometry, self.pose_callback)
+
+        # Pirate detector subscribers
+        self.pirates_sub = rospy.Subscriber('/Pirates', Path, self.pirate_callback)
+        self.dead_pirates_sub = rospy.Subscriber('/Dead', Path, self.dead_pirate_callback)
         
         self.pirate_sub = rospy.Subscriber('Pirates', Path, self.pirate_callback)
         self.dead_pirate_sub = rospy.Subscriber('Dead', Path, self.dead_pirate_callback)
@@ -102,8 +106,7 @@ class Widgetti(QWidget):
     def get_data_from_camera(self):
         for z in self.dead_pirate_objects:
             self.robomap.scene.removeItem(z)
-        self.dead_pirate_objects = None
-        
+        #self.dead_pirate_objects = None
         #self.pirate_detector.activate_node()
         #while not self.pirate_detector.pirate_coordinates:
         #    rospy.sleep(0.5)
@@ -111,7 +114,7 @@ class Widgetti(QWidget):
         #    self.pirates.append(z)
         #for z in self.pirate_detector.dead_pirate_coordinates.poses:
         #    self.dead_pirates.append(z)
-        self.robomap.update_map(self.dead_pirates)
+        #self.robomap.update_map(self.dead_pirates)
         return True
 
     def update_textbox(self, header, txt):
@@ -142,7 +145,21 @@ class Widgetti(QWidget):
         else:
             print 'sumthing else'
             print goal_states.get(status)
-    
+
+    def pirate_callback(self, data):
+        if self.pirate_update:
+            for z in data.poses:
+                self.pirates.append(z)
+            self.update_textbox('Number of pirates: ', str(len(self.pirates)))
+            self.pirate_update = False
+
+    def dead_pirate_callback(self, data):
+        if self.dead_pirate_update:
+            for z in data.poses:
+                self.dead_pirates.append(z)
+            self.dead_pirate_update = False
+            self.robomap.insert_to_map(self.dead_pirates)
+
     def feedback(self, feedback):
         print 'in the feedback lol'
         pose_stamp = feedback.base_position
@@ -394,6 +411,7 @@ class TaskPlanner():
 	self.parent.actionclient.cancel_all_goals()
         self.move_goal = MoveBaseGoal(target_pose=self.parent.pirates.pop())
         print 'Pirate at: ' + str(self.move_goal)
+        self.parent.update_textbox('Moving towards pirate:', self.move_goal)
         self.parent.actionclient.send_goal(self.move_goal, feedback_cb=self.parent.feedback)
 
     def manipulatorCb(self, msg):
