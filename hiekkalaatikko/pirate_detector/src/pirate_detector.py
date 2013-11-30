@@ -65,7 +65,81 @@ class pirate_detector:
         
     def pcl2_callback(self, data):
         print 'PCL callback gotten'
+		tmp = data
+		tmp = self.remove_shit(tmp)
+		tmp = self.downsample_pointcloud(tmp)
+		tmp = self.remove_floor_and_segment(tmp)
         self.last_pcl = data
+	
+	def remove_shit(self, pointcloud_array):
+		tmp = pointcloud_array
+		mask = np.isfinite(cloud_array['x']) & np.isfinite(cloud_array['y']) & np.isfinite(cloud_array['z'])
+        tmp = tmp[mask]
+		return tmp
+		
+	def remove_floor_and_segment(self, pointcloud_array):
+		tmp = pointcloud_array
+		for y in range(len(tmp['x'])):
+			for x in range(len(tmp['x'][0])):
+				#If y value is close to zero, we can assume it's floor and set all values to zero :)
+				#If z value is over 2, we remove it as we don't need to see that far
+				if abs(tmp['y'][y][x]) < 0.005 or abs(tmp['z'][y][x]) > 2.0:
+					tmp['x'][y][x] = 0
+					tmp['y'][y][x] = 0
+					tmp['z'][y][x] = 0
+			#Removing all zeros we just set earlier
+			tmp['x'][y] = np.trim_zeros(tmp['x'][y])
+			tmp['y'][y] = np.trim_zeros(tmp['y'][y])
+			tmp['z'][y] = np.trim_zeros(tmp['z'][y])
+		#TODO: Should probably remove empty rows
+		return tmp
+		
+	def downsample_pointcloud(self, pointcloud_array):
+		#downsampling cloud by 3x3 mask, and using center points as values to pass to downsampled cloud
+		tmp = pointcloud_array
+		result = tmp
+		result_x = [][]
+		result_y = [][]
+		result_z = [][]
+		j = 1
+		for y in range(len(tmp['x'])):
+			if y + j >= len(tmp['x']):
+				break
+			i = 1
+			for x in range(len(tmp['x'][0])):
+				if x + i >= len(tmp['x'][0]):
+					break
+				x = tmp['x'][y + j][x + i]
+				y = tmp['y'][y + j][x + i]
+				z = tmp['z'][y + j][x + i]
+				result_x[y].append(x)
+				result_y[y].append(y)
+				result_z[y].append(z)
+				i += 2
+			j += 2
+		result['x'] = result_x
+		result['y'] = result_y
+		result['z'] = result_z
+		return result
+		
+	def look_for_pirates(self, pointcloud_array, offset=0.02):
+		tmp = pointcloud_array
+		#Let's look something like 1X3 objects from the cloud, they should be pirates?
+		#should look from up the ground or something
+		pirates = []
+		for y in range(len(tmp['x'])):
+			if y > 7:
+				for x in range(len(tmp['x'][0])):
+					if tmp['y'][y][x] > 0.005 and tmp['y'][y][x] < 0.02:
+						z1 = abs(tmp['z'][y][x])
+						z2 = abs(tmp['z'][y - 1][x])
+						z3 = abs(tmp['z'][y - 2][x])
+						z7 = abs(tmp['z'][y - 6][x])
+						if abs(z1 - z2) < offset and abs(z1 - z3) < offset and abs(z1 - z7) > offset:
+							point = [tmp['z'][y][x], tmp['y'][y][x], tmp['x'][y][x]]
+							pirates.append(point)
+		print pirates
+		return pirates
         
     def pcl2_parser(self):
         print 'Parsing pcl and image data'
