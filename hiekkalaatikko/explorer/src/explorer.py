@@ -36,7 +36,7 @@ class Explorer:
         self.camera_subscriber = rospy.Subscriber('/camera/rgb/image_mono', Image, self.detector_callback)
         # Publish goals as PoseStamped, subscriber at task planner ?
         self.goal_pub = rospy.Publisher('explore_point', PoseStamped)
-        self.get_goal_sub = rospy.Subscriber('/explore_next_point', String, self.get_next_point)
+        self.get_goal_sub = rospy.Subscriber('/explore_next_point', String, self.next_pose_callback)
 
     # Method to update map with laser callback data
     def laser_callback(self,msg):
@@ -249,7 +249,7 @@ class Explorer:
                 if not self.isClear(x0, y0):
                     break
                 
-                self.plotMap(x0 - xMin,y0 - yMin, self.weightmap[y0][x0], tempMap)
+                #self.plotMap(x0 - xMin,y0 - yMin, self.weightmap[y0][x0], tempMap)
 
                 if x0 == x1 and y0 == y1:
                     #self.plotMap(x0 - xMin,y0 - yMin, self.weightmap[y0][x0], tempMap)
@@ -366,24 +366,43 @@ class Explorer:
         cont = False
 
         while not cont: #p[0] < 0 and (value <= 0 or value > 6):
-            x = random.randrange(len(self.map[0]))
-            y = random.randrange(len(self.map))
-        
+            print 'Still in cont'
+            (x,y) = self.get_next_point()
+            
+            if x == -1:
+                (x,y) = self.get_next_point(algo=2)
+            print 'Next point coordinates: X:' + str(x) + ' Y:' +str(y)
             value = self.map[y][x]
-        
+            print 'Value ' + str(value)
             if value <= 0 or value > 6:
                 continue
         
-            dir = self.direction_from_point(x, y)
-        
+            direction = self.direction_from_point(x, y)
+            print direction
             # Check for weight map usability
-            if dir[1] > self.weightLimit:
-                p = (x, y, dir[0])
+            if direction[1] > self.weightLimit:
+                p = (x, y, direction[0])
                 cont = True
                 #print "Weight: %d" % dir[1]
 
         return p
 
+    def next_pose_callback(self,data):
+        print 'Got called for next point with msg: '+str(data)
+        if self.map is None or self.resolution is None:
+            print 'Explorer not initialized yet!'
+            return
+        p = self.get_next_pose()
+        quaternion = quaternion_from_euler(0,0,p[2])
+        next_pose = PoseStamped()
+        next_pose.header.frame_id = 'map'
+        next_pose.header.stamp = rospy.Time.now()
+        next_pose.pose.position.x = p[0]
+        next_pose.pose.position.y = p[1]
+        next_pose.pose.orientation.w = quaternion[3]
+        next_pose.pose.orientation.z = quaternion[2]
+        print 'Next point to explore: ('+str(p[0])+', '+str(p[1])+') with orientation '+str(p[2])
+        self.goal_pub.publish(next_pose)
 
 if __name__ == "__main__":
     rospy.init_node('explorer')
