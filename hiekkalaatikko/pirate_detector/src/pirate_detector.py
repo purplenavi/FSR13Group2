@@ -15,6 +15,8 @@ import os
 import sys
 import cv
 from pointcloud import *
+import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
 
 class pirate_detector:
     def __init__(self, parent=None):
@@ -32,6 +34,7 @@ class pirate_detector:
         self.dead_pirates = []
         self.dead_pirate_coordinates = None
         self.camera_publisher = rospy.Publisher('/ptu_servo_angles', Vector3)
+        self.pcpub = rospy.Publisher('vmp', PointCloud2)
         self.pirate_publisher = rospy.Publisher('/Pirates', Path)
         self.dead_pirate_publisher = rospy.Publisher('/Dead', Path)
         self.image_subscribe = None
@@ -42,13 +45,14 @@ class pirate_detector:
         self.camera_offset = [0.135, 0, -0.31, 115.0]
         self.tilt_camera()
         self.last_pcl = None
+        self.activate_node()
         
     def activate_node(self):
         print self.tilt_camera()
         print 'Activating camera nodes'
         self.point_cloud2_subscribe = rospy.Subscriber('/camera/depth/points', PointCloud2, self.pcl2_callback)
         rospy.sleep(1.0)
-        self.image_subscribe = rospy.Subscriber('/camera/rgb/image_mono', Image, self.image_callback)
+        #self.image_subscribe = rospy.Subscriber('/camera/rgb/image_mono', Image, self.img_cb)
         self.pirate_coordinates = None
         self.dead_pirate_coordinates = None
 
@@ -58,88 +62,119 @@ class pirate_detector:
 
     def deactivate_node(self):
         print 'Deactivating camera nodes'
-        self.image_subscribe.unregister()
+        #self.image_subscribe.unregister()
         self.point_cloud2_subscribe.unregister()
         self.image_subscribe = None
         self.point_cloud2_subscribe = None
         
     def pcl2_callback(self, data):
         print 'PCL callback gotten'
-		tmp = data
-		tmp = self.remove_shit(tmp)
-		tmp = self.downsample_pointcloud(tmp)
-		tmp = self.remove_floor_and_segment(tmp)
+        tmp = pointcloud2_to_array(data)
+        tmp = self.downsample_pointcloud(tmp)
+        tmp = self.remove_floor_and_segment(tmp)
+        #fig = plt.figure()
+        #ax = Axes3D(fig)
+        #for y in range(len(tmp['x'])):
+        #    ax.scatter(tmp['x'][y], tmp['y'][y], tmp['z'][y])
+        #fig.add_axes(ax)
+        #plt.show()
+        cloud = array_to_pointcloud2(tmp)
+        self.pcpub.publish(cloud)
+        pirates = self.look_for_pirates(tmp)
         self.last_pcl = data
-	
-	def remove_shit(self, pointcloud_array):
-		tmp = pointcloud_array
-		mask = np.isfinite(cloud_array['x']) & np.isfinite(cloud_array['y']) & np.isfinite(cloud_array['z'])
-        tmp = tmp[mask]
-		return tmp
-		
-	def remove_floor_and_segment(self, pointcloud_array):
-		tmp = pointcloud_array
-		for y in range(len(tmp['x'])):
-			for x in range(len(tmp['x'][0])):
-				#If y value is close to zero, we can assume it's floor and set all values to zero :)
-				#If z value is over 2, we remove it as we don't need to see that far
-				if abs(tmp['y'][y][x]) < 0.005 or abs(tmp['z'][y][x]) > 2.0:
-					tmp['x'][y][x] = 0
-					tmp['y'][y][x] = 0
-					tmp['z'][y][x] = 0
-			#Removing all zeros we just set earlier
-			tmp['x'][y] = np.trim_zeros(tmp['x'][y])
-			tmp['y'][y] = np.trim_zeros(tmp['y'][y])
-			tmp['z'][y] = np.trim_zeros(tmp['z'][y])
-		#TODO: Should probably remove empty rows
-		return tmp
-		
-	def downsample_pointcloud(self, pointcloud_array):
-		#downsampling cloud by 3x3 mask, and using center points as values to pass to downsampled cloud
-		tmp = pointcloud_array
-		result = tmp
-		result_x = [][]
-		result_y = [][]
-		result_z = [][]
-		j = 1
-		for y in range(len(tmp['x'])):
-			if y + j >= len(tmp['x']):
-				break
-			i = 1
-			for x in range(len(tmp['x'][0])):
-				if x + i >= len(tmp['x'][0]):
-					break
-				x = tmp['x'][y + j][x + i]
-				y = tmp['y'][y + j][x + i]
-				z = tmp['z'][y + j][x + i]
-				result_x[y].append(x)
-				result_y[y].append(y)
-				result_z[y].append(z)
-				i += 2
-			j += 2
-		result['x'] = result_x
-		result['y'] = result_y
-		result['z'] = result_z
-		return result
-		
-	def look_for_pirates(self, pointcloud_array, offset=0.02):
-		tmp = pointcloud_array
-		#Let's look something like 1X3 objects from the cloud, they should be pirates?
-		#should look from up the ground or something
-		pirates = []
-		for y in range(len(tmp['x'])):
-			if y > 7:
-				for x in range(len(tmp['x'][0])):
-					if tmp['y'][y][x] > 0.005 and tmp['y'][y][x] < 0.02:
-						z1 = abs(tmp['z'][y][x])
-						z2 = abs(tmp['z'][y - 1][x])
-						z3 = abs(tmp['z'][y - 2][x])
-						z7 = abs(tmp['z'][y - 6][x])
-						if abs(z1 - z2) < offset and abs(z1 - z3) < offset and abs(z1 - z7) > offset:
-							point = [tmp['z'][y][x], tmp['y'][y][x], tmp['x'][y][x]]
-							pirates.append(point)
-		print pirates
-		return pirates
+        
+    def remove_floor_and_segment(self, pointcloud_array):
+        tmp = pointcloud_array
+        for y in range(len(tmp['x'])):
+            for x in range(len(tmp['x'][0])):
+                #If y value is close to zero, we can assume it's floor and set all values to zero :)
+                #If z value is over 2, we remove it as we don't need to see that far
+                if abs(tmp['y'][y][x]) < 0.005 or abs(tmp['z'][y][x]) > 2.0:
+                    tmp['x'][y][x] = 999
+                    tmp['y'][y][x] = 999
+                    tmp['z'][y][x] = 999
+        #TODO: Should probably remove empty rows
+        return tmp
+        
+    def downsample_pointcloud(self, pointcloud_array):
+        #downsampling cloud by 3x3 mask, and using center points as values to pass to downsampled cloud
+        tmp = pointcloud_array
+        result = tmp
+        result_x = []
+        result_y = []
+        result_z = []
+        j = 1
+        for y in range(len(tmp['x'])):
+            if y + j >= len(tmp['x']):
+                break
+            i = 1
+            tmplistaX = []
+            tmplistaY = []
+            tmplistaZ = []
+            for x in range(len(tmp['x'][0])):
+                if x + i >= len(tmp['x'][0]):
+                    break
+                px = tmp['x'][y + j][x + i]
+                py = tmp['y'][y + j][x + i]
+                pz = tmp['z'][y + j][x + i]
+                tmplistaX.append(px)
+                tmplistaY.append(py)
+                tmplistaZ.append(pz)
+                i += 2
+            j += 2
+            result_x.append(tmplistaX)
+            result_y.append(tmplistaY)
+            result_z.append(tmplistaZ)
+        result = np.resize(result, (len(result_x), len(result_x[0])))
+        result['x'] = result_x
+        result['y'] = result_y
+        result['z'] = result_z
+        return result
+        
+    def look_for_pirates(self, pointcloud_array, offset=0.02):
+        tmp = pointcloud_array
+        #Let's look something like 1X3 objects from the cloud, they should be pirates?
+        #should look from up the ground or something
+        pirates = []
+        for y in range(len(tmp['x'])):
+            if y > 7:
+                for x in range(len(tmp['x'][0])):
+                    if tmp['y'][y][x] > 0.04 and tmp['y'][y][x] < 0.06:
+                        z1 = abs(tmp['z'][y][x])
+                        z2 = abs(tmp['z'][y - 1][x])
+                        z3 = abs(tmp['z'][y - 2][x])
+                        z7 = abs(tmp['z'][y - 6][x])
+                        if abs(z1 - z2) < offset and abs(z1 - z3) < offset and abs(z1 - z7) > offset:
+                            accept = True
+                            point = [tmp['z'][y][x], tmp['y'][y][x], tmp['x'][y][x]]
+                            for pirate in pirates:
+                                accept = self.distance(pirate, point)
+                                if not accept:
+                                    break
+                            if accept:
+                                print z7
+                                pirates.append(point)
+        for p in pirates:
+            print p
+        return pirates
+        
+    def distance(self, p1, p2):
+        """
+        Given two points, determine the distance
+        """
+        out = 0
+        out += math.pow(p1[0] - p2[0], 2)
+        out += math.pow(p1[2] - p2[2], 2)
+        out = math.sqrt(out)
+        if out < 0.2:
+            return False
+        else:
+            return True
+        
+    def accept_pirate(self, x1, x2, z1, z2, offset=0.1):
+        if abs(x1 - x2) < offset and abs(z1 - z2) < offset:
+            return False
+        return True
         
     def pcl2_parser(self):
         print 'Parsing pcl and image data'
@@ -251,9 +286,18 @@ class pirate_detector:
         self.dead_pirate_publisher(path2)
         #self.deactivate_node() # no need for restart every time 
         
+    def img_cb(self, data):
+        print 'image cb'
+        try:
+            #convert image to opencv format
+            cv_image = self.bridge.imgmsg_to_cv(data, "mono8")
+        except CvBridgeError, e:
+            print e
+        cv.ShowImage(self.cv_window_name, cv_image)
+        
     def image_callback(self, data):
         # Don't use data if it differs between image and point cloud too much
-        if (abs(self.pcl_data.header.stamp.secs - data.header.stamp.secs) > 5.0:
+        if (abs(self.pcl_data.header.stamp.secs - data.header.stamp.secs)) > 5.0:
             print 'Data difference too big ('+str(abs(self.pcl_data.header.stamp.secs - data.header.stamp.secs))+') so skipping the callback!'
             return
         print 'Image callback '
