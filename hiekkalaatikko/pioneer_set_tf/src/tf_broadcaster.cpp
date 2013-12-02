@@ -1,5 +1,6 @@
 #include <ros/ros.h>
 #include <tf/transform_broadcaster.h>
+#include <tf/transform_listener.h>
 #include <geometry_msgs/Vector3.h>
 #include <boost/math/constants/constants.hpp>
 #include <pcl_ros/point_cloud.h>
@@ -23,6 +24,8 @@ static tf::Transform TF = tf1*tf2;
 typedef pcl::PointCloud<pcl::PointXYZ> PointCloud;
 
 static ros::Publisher pcl_pub;
+
+tf::TransformListener *tf_listener; 
 
 double getRadian(double degree)
 {
@@ -58,10 +61,14 @@ void pclCallback(const PointCloud::ConstPtr& msg) {
 		return ;
 	}
 	sensor_msgs::PointCloud2Ptr transformed_cloud = sensor_msgs::PointCloud2Ptr(new sensor_msgs::PointCloud2)
+	// Wait for transformation
+
 	// Not sure which one on fuerte
-	// pcl_ros::transformPointCloud("/base_link", TF, msg, cloud_out);
+	// pcl_ros::transformPointCloud("/base_link", TF, msg, transformed_cloud);
+	tf_listener->waitForTransform("/base_link", (*msg).header.frame_id, (*msg).header.stamp, ros::Duration(5.0));
 	pcl_ros::transformPointCloud("/base_link", TF, ros::Time::now(), msg, transformed_cloud);
-	pub.publish(transformed_cloud);
+	
+	pcl_pub.publish(transformed_cloud);
 }
 
 int main(int argc, char** argv)
@@ -71,8 +78,9 @@ int main(int argc, char** argv)
     ros::Rate r(100);
     ros::Subscriber sub = n.subscribe("ptu_servo_states", 1000, Callback);
 	ros::Subscriber pcl_sub = n.subscribe<PointCloud>("/camera/depth/points", 1, pclCallback);
+	tf_listener = new TransformListener();
     publish(TF, "base_link", "camera_link");
-	pub = nh.advertise<PointCloud>("/camera/depth/points/transformed", 1);
+	pcl_pub = nh.advertise<PointCloud>("/camera/depth/points/transformed", 1);
     while (n.ok())
     {
         ros::spinOnce();
