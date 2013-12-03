@@ -41,8 +41,6 @@ class pirate_detector:
         self.point_cloud2_subscribe = None
         rospy.sleep(1.0)
         # camera link transformation (maybe remeasure these?!)
-        # self.camera_offset = [x y z tilt]
-        self.camera_offset = [0.135, 0, -0.31, 115.0]
         self.tilt_camera()
         self.last_pcl = None
         self.activate_node()
@@ -57,7 +55,6 @@ class pirate_detector:
         self.dead_pirate_coordinates = None
 
     def tilt_camera(self,x=0.0,y=115.0,z=90.0):
-        self.camera_offset[3] = y
         self.camera_publisher.publish(Vector3(x, y, z))
 
     def deactivate_node(self):
@@ -72,31 +69,17 @@ class pirate_detector:
         print 'PCL callback gotten'
         tmp = pointcloud2_to_array(data)
         tmp = self.downsample_pointcloud(tmp)
-        #cloud = array_to_pointcloud2(tmp)
-        #tf_cloud = self.transform_pointcloud(cloud)
-        #tmp = pointcloud2_to_array(tf_cloud)
-        #tmp = self.remove_floor_and_segment(tmp)
-        #fig = plt.figure()
-        #ax = fig.add_subplot(111, projection='3d')
-        #n = 100
-        #for y in range(len(tmp['x'])):
-        #    for x in range(len(tmp['x'][0])):
-        #        if tmp['y'][y][x] < 999:
-        #            ax.scatter(tmp['x'][y][x], tmp['y'][y][x], tmp['z'][y][x])
-
-        #ax.set_xlabel('X Label')
-        #ax.set_ylabel('Y Label')
-        #ax.set_zlabel('Z Label')
-
-        #plt.show()
         cloud = array_to_pointcloud2(tmp)
         cloud.header.frame_id = '/base_link'
         self.pcpub.publish(cloud)
         pirates = self.look_for_pirates(tmp)
+        dead = self.look_for_dead_pirates(tmp)
         self.publish_pirates(pirates)
+        self.publish_dead(dead)
         self.last_pcl = data
         
     def remove_floor_and_segment(self, pointcloud_array):
+        #TODO: FIX THE METHOD!
         tmp = pointcloud_array
         for y in range(len(tmp['x'])):
             for x in range(len(tmp['x'][0])):
@@ -151,6 +134,50 @@ class pirate_detector:
         
     def publish_pirates(self, pirates):
         self.pirate_publisher.publish(pirates)
+        
+    def publish_dead(self, dead):
+        self.dead_pirate_publisher.publish(dead)
+        
+    def look_for_dead_pirates(self, pointcloud_array, offset=0.02):
+        tmp = pointcloud_array
+        #Look for something like 3x1 objects from the cloud like 1-2 cm above the floor (floor currently at ~-0.69)
+        dead = []
+        for y in range(len(tmp['x'])):
+            for x in range(len(tmp['x'][0])):
+                if x < (len(tmp['x'][0]) - 9):
+                    i = 1
+                    j = 2
+                    k = 9
+                else:
+                    i = -1
+                    j = -2
+                    k = -9
+                if tmp['z'][y][x] > -0.68 and tmp['z'][y][x] < -0.665 and tmp['x'][y][x] < 1.8:
+                    y1 = abs(tmp['y'][y][x])
+                    y2 = abs(tmp['y'][y][x + i])
+                    y3 = abs(tmp['y'][y][x + j])
+                    y7 = abs(tmp['y'][y][x + k])
+                    if abs(y1 - y2) < offset and abs(y1 - y3) < offset and abs(y1 - y7) > offset:
+                        accept = True
+                        point = [tmp['x'][y][x], tmp['y'][y][x], tmp['z'][y][x]]
+                        for d in dead:
+                            accept = self.distance(d, point)
+                            if not accept:
+                                break
+                        if accept:
+                            dead.append(point)
+        path1 = Path()
+        camerapoint = PoseStamped()
+        for d in dead:
+            quaternion = quaternion_from_euler(0, 0, math.atan2(d[1]-0, d[0]-0))
+            camerapoint.header.frame_id = 'map'
+            camerapoint.header.stamp = rospy.Time.now()
+            camerapoint.pose.position.x = d[0]
+            camerapoint.pose.position.y = d[1]
+            camerapoint.pose.orientation.w = quaternion[3]
+            camerapoint.pose.orientation.z = quaternion[2]
+            path1.poses.append(camerapoint)
+        return path1
 
     def look_for_pirates(self, pointcloud_array, offset=0.02):
         tmp = pointcloud_array
@@ -161,11 +188,11 @@ class pirate_detector:
             if y > 7:
                 for x in range(len(tmp['x'][0])):
                     if tmp['z'][y][x] > -0.65 and tmp['z'][y][x] < -0.6 and tmp['x'][y][x] < 1.8:
-                        z1 = abs(tmp['x'][y][x])
-                        z2 = abs(tmp['x'][y - 1][x])
-                        z3 = abs(tmp['x'][y - 2][x])
-                        z7 = abs(tmp['x'][y - 6][x])
-                        if abs(z1 - z2) < offset and abs(z1 - z3) < offset and abs(z1 - z7) > offset:
+                        x1 = abs(tmp['x'][y][x])
+                        x2 = abs(tmp['x'][y - 1][x])
+                        x3 = abs(tmp['x'][y - 2][x])
+                        x7 = abs(tmp['x'][y - 6][x])
+                        if abs(x1 - x2) < offset and abs(x1 - x3) < offset and abs(x1 - x7) > offset:
                             accept = True
                             point = [tmp['x'][y][x], tmp['y'][y][x], tmp['z'][y][x]]
                             for pirate in pirates:
@@ -175,8 +202,6 @@ class pirate_detector:
                             if accept:
                                 print z7
                                 pirates.append(point)
-        for p in pirates:
-            print p
         path1 = Path()
         camerapoint = PoseStamped()
         for p in pirates:
@@ -207,235 +232,6 @@ class pirate_detector:
         if abs(x1 - x2) < offset and abs(z1 - z2) < offset:
             return False
         return True
-        
-    def pcl2_parser(self):
-        print 'Parsing pcl and image data'
-        path1 = Path()
-        path2 = Path()
-        tmp = [[0.0,0.0]]
-        while self.pirates:
-            print 'WE has piratez'
-            pirate = self.pirates.pop()
-            cloud_data = pointcloud2_to_array(self.last_pcl)
-            found = False
-            for x in [0,1,-1,2,-2,3,-3,4,-4,5,-5]:
-                for y in [0,1,-1,2,-2,3,-3,4,-4,5,-5]:
-                    if pirate[1]+y < 0 or pirate[0]+x < 0 or len(cloud_data['x']) <= pirate[1]+y or len(cloud_data['x'][0]) <= pirate[0]+x:
-                        continue
-                    datapoint = []
-                    datapoint.append(cloud_data['x'][pirate[1]+y][pirate[0]+x])
-                    datapoint.append(cloud_data['y'][pirate[1]+y][pirate[0]+x])
-                    datapoint.append(cloud_data['z'][pirate[1]+y][pirate[0]+x])
-                    if not math.isnan(datapoint[0]) and not math.isnan(datapoint[1]) and not math.isnan(datapoint[2]):
-                        found = True
-                        break
-                if found:
-                    break
-            if found:
-                print datapoint
-                #Create a P2P message to reach the figure
-                camerapoint = PoseStamped()
-                #z is depth in cloud data
-                # camera_link -> base_link conversion via simple trigonometria
-                x = datapoint[2]*math.cos(self.camera_offset[3]-90)+self.camera_offset[0]
-                y = -datapoint[0]+self.camera_offset[1]
-                z = datapoint[1]*math.sin(self.camera_offset[3])+self.camera_offset[2]
-                print 'Alive pirate found at ('+str(x)+', '+str(y)+', '+str(z)+')'
-                if abs(z) > 0.20:
-                    print 'Pirate is HIGH!'
-                    continue
-                insert_pirate = True
-                for i in tmp:
-                    if abs(x-i[0]) < 0.1 or abs(y-i[1]) < 0.1:
-                        insert_pirate = False
-                        break
-                if insert_pirate:
-                    quaternion = quaternion_from_euler(0, 0, math.atan2(y-0, x-0))
-                    camerapoint.header.frame_id = 'map'
-                    camerapoint.header.stamp = rospy.Time.now()
-                    camerapoint.pose.position.x = x
-                    camerapoint.pose.position.y = y
-                    camerapoint.pose.orientation.w = quaternion[3]
-                    camerapoint.pose.orientation.z = quaternion[2]
-                    path1.poses.append(camerapoint)
-                    print 'Found pirate coordinates'
-                    tmp.append([x, y])
-                    cv.Circle(self.cv_image, (int(pirate[0]), int(pirate[1])), 20, (0, 100, 0), cv.CV_FILLED)
-        #Now check dead pirate coordinates
-        tmp = [[0.0,0.0]]
-        while self.dead_pirates:
-            pirate = self.dead_pirates.pop()
-            cloud_data = pointcloud2_to_array(self.last_pcl)
-            found = False
-            for x in [0,1,-1,2,-2,3,-3,4,-4,5,-5]:
-                for y in [0,1,-1,2,-2,3,-3,4,-4,5,-5]:
-                    if pirate[1]+y < 0 or pirate[0]+x < 0 or len(cloud_data['x']) <= pirate[1]+y or len(cloud_data['x'][0]) <= pirate[0]+x:
-                        continue
-                    datapoint = []
-                    datapoint.append(cloud_data['x'][pirate[1]+y][pirate[0]+x])
-                    datapoint.append(cloud_data['y'][pirate[1]+y][pirate[0]+x])
-                    datapoint.append(cloud_data['z'][pirate[1]+y][pirate[0]+x])
-                    if not math.isnan(datapoint[0]) and not math.isnan(datapoint[1]) and not math.isnan(datapoint[2]):
-                        found = True
-                        break
-                if found:
-                    break
-            if found:
-                print datapoint
-                #Create a P2P message to reach the figure
-                camerapoint = PoseStamped()
-                #z is depth in cloud data
-                # camera_link -> base_link conversion via simple trigonometria
-                x = datapoint[2]*math.cos(self.camera_offset[3]-90.0)+self.camera_offset[0]
-                y = -datapoint[0]+self.camera_offset[1]
-                z = datapoint[1]*math.sin(self.camera_offset[3])+self.camera_offset[2]
-                print 'Dead pirate found at ('+str(x)+', '+str(y)+', '+str(z)+')'
-                if abs(z) > 0.10:
-                    print 'Dead pirate HIGH! ('+str(abs(z))+')'
-                    continue
-                insert_pirate = True
-                for i in tmp:
-                    if abs(x-i[0]) < 0.1 or abs(y-i[1]) < 0.1:
-                        insert_pirate = False
-                        break
-                if insert_pirate:
-                    quaternion = quaternion_from_euler(0, 0, math.atan2(y-0, x-0))
-                    camerapoint.header.frame_id = 'map'
-                    camerapoint.header.stamp = rospy.Time.now()
-                    camerapoint.pose.position.x = x
-                    camerapoint.pose.position.y = y
-                    camerapoint.pose.orientation.w = quaternion[3]
-                    camerapoint.pose.orientation.z = quaternion[2]
-                    path2.poses.append(camerapoint)
-                    print 'Found dead pirate coordinates'
-                    tmp.append([x, y])
-                    cv.Circle(self.cv_image, (int(pirate[0]), int(pirate[1])), 15, (255, 255, 255), cv.CV_FILLED)
-        print 'Publishing coordinates'
-        cv.ShowImage(self.cv_window_name, self.cv_image)
-        self.pirate_coordinates = path1
-        self.dead_pirate_coordinates = path2
-        self.pirate_publisher.publish(path1)
-        self.dead_pirate_publisher(path2)
-        #self.deactivate_node() # no need for restart every time 
-        
-    def img_cb(self, data):
-        print 'image cb'
-        try:
-            #convert image to opencv format
-            cv_image = self.bridge.imgmsg_to_cv(data, "mono8")
-        except CvBridgeError, e:
-            print e
-        cv.ShowImage(self.cv_window_name, cv_image)
-        
-    def image_callback(self, data):
-        # Don't use data if it differs between image and point cloud too much
-        if (abs(self.pcl_data.header.stamp.secs - data.header.stamp.secs)) > 5.0:
-            print 'Data difference too big ('+str(abs(self.pcl_data.header.stamp.secs - data.header.stamp.secs))+') so skipping the callback!'
-            return
-        print 'Image callback '
-        try:
-            #convert image to opencv format
-            cv_image = self.bridge.imgmsg_to_cv(data, "mono8")
-        except CvBridgeError, e:
-            print e
-        print 'Converted to openCV format'
-        #Canny detecting
-        cv.EqualizeHist(cv_image, cv_image)
-        cv.Smooth(cv_image, cv_image, cv.CV_GAUSSIAN, 11, 11)
-        yuv = cv.CreateImage(cv.GetSize(cv_image), 8, 3)
-        gray = cv.CreateImage(cv.GetSize(cv_image), 8, 1)
-        canny = cv.CreateImage(cv.GetSize(cv_image),8, 1)
-        cv.Canny(cv_image,canny,50,250)
-        bwimage = cv.CreateImage(cv.GetSize(canny), 8, 1)
-        cv.Threshold(canny, bwimage, 128, 255, cv.CV_THRESH_BINARY)
-        print 'Canny filtered, finding contours'
-        a = np.asarray(canny[:,:])
-        print 'numpy array created'
-        cv.FloodFill(canny, (0, 0), 0)
-        print 'canny image filled'
-        storage = cv.CreateMemStorage()
-        print 'memstorage created'
-        contour_pointer = cv.FindContours(canny, storage, method=cv.CV_CHAIN_APPROX_TC89_KCOS,mode=cv.CV_RETR_EXTERNAL)
-        contour_areas = []
-        
-        print 'Contours found'
-    
-        while contour_pointer is not None:
-            contour = contour_pointer[ : ]
-            centre_of_mass = self.find_centre_of_mass(contour)
-            #self.draw_contour(cv_image, rotated_contour, cv.CV_RGB( 255 , 255 , 255 ), 5)
-            x, y, w, h = cv.BoundingRect(contour)
-            if h > w and h > 20 and h < 90:
-                self.pirates.append((self.get_center_coordinates(x, y, h, w)))
-                #cv.Rectangle(cv_image, (x, y), (x+w, y+h), (0, 255, 0), cv.CV_FILLED)
-            elif w > h and w > 20 and w < 90 and (w-h) > 10:
-                self.dead_pirates.append((self.get_center_coordinates(x, y, h, w)))
-                #cv.Rectangle(cv_image, (x, y), (x+w, y+h), (0, 100, 0), cv.CV_FILLED)
-            contour_pointer = contour_pointer.h_next()
-            print 'Contour done'
-        print self.pirates
-        self.cv_image = cv_image
-        #cv.ShowImage(self.cv_window_name, cv_image)
-        print 'Image done'
-        self.image_counter = 0
-        if self.pirates and self.last_pcl is not None:
-            self.pcl2_parser()
-        cv.WaitKey(100) # try every 0.1 secs
-        
-    #Code samples fetched from http://www.pirobot.org/blog/0016/
-    # Draw contour from list of tuples.
-    def draw_contour( self, im , contour , color , thickness = 1 , linetype = 8 ,
-                    shift = 0 ) :
-        if thickness == -1 :
-            cv.FillPoly( im , [contour] , color , linetype , shift )
-        else :
-            cv.PolyLine( im , [contour] , True , color , thickness , linetype , shift )
-
-    # Rotate contour around centre point using numpy.
-    def rotate_contour( self, contour , centre_point , theta ) :
-        rotation = np.array( [ [ np.cos( theta ) , -np.sin( theta ) ] , [ np.sin( theta ) ,  np.cos( theta ) ] ] )
-        centre = np.vstack( [ centre_point ] * len( contour ) )
-        contour = np.vstack( contour ) - centre
-        contour = np.dot( contour , rotation ) + centre
-        return [ tuple ( each_row ) for each_row in contour ]
-
-    # Find centre of mass by drawing contour in closed form and using moments.
-    def find_centre_of_mass( self, contour ) :
-        bottom_right = np.max( contour , axis = 0 )
-        blank = cv.CreateImage( tuple ( bottom_right ) , 8 , 1 )
-        cv.Set( blank , 0 )
-        self.draw_contour( blank , contour , 1, -1 )
-        matBlank = cv.GetMat(blank)
-        moments = cv.Moments( matBlank , 1 )  
-        sM00 = float ( cv.GetSpatialMoment( moments , 0 , 0 ) )
-        sM01 = float ( cv.GetSpatialMoment( moments , 0 , 1 ) )
-        sM10 = float ( cv.GetSpatialMoment( moments , 1 , 0 ) )
-        if sM00 == 0:
-            sM00 = 1
-        return ( sM10 / sM00 , sM01 / sM00 )
-    
-    def get_center_coordinates(self, x, y, w, h):
-        center_x = float(x + w/2.0)
-        center_y = float(y + h/2.0)
-        return (center_x, center_y)
-
-    def pointcloud2_to_array(self, cloud_msg):
-        dtype_list = [(f.name, np.float32) for f in cloud_msg.fields]
-        cloud_arr = np.fromstring(cloud_msg.data, dtype_list)
-        return np.reshape(cloud_arr, (cloud_msg.width, cloud_msg.width)) 
-    
-    def get_xyz_points(self, cloud_array, remove_nans=True):
-        if remove_nans:
-            mask = np.isfinite(cloud_array['x']) & np.isfinite(cloud_array['y']) & np.isfinite(cloud_array['z'])
-            cloud_array = cloud_array[mask]
-        points = np.zeros(list(cloud_array.shape) + [3], dtype=np.float)
-        points[...,0] = cloud_array['x']
-        points[...,1] = cloud_array['y']
-        points[...,2] = cloud_array['z']
-        return points
-
-    def pointcloud2_to_xyz_array(self, cloud_msg, remove_nans=True):
-        return self.get_xyz_points(self.pointcloud2_to_array(cloud_msg), remove_nans=remove_nans)
         
 def main(args):
     rospy.init_node('pirate_detector')
