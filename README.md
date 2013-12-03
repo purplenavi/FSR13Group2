@@ -3,4 +3,4 @@ FSR13Group2
 
 Field and Service Robotics Course assignment, Group 2
 
-In assignment we will implement a 'rescue robot' to navigate in an unknown enviroment and locate and rescue 'people'.
+Rescue robot implementation to Pioneer P3-DX. Robot picks up injured (standing) figures and marks the dead ones (not standing).
