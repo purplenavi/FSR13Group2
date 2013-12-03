@@ -50,7 +50,7 @@ class pirate_detector:
     def activate_node(self):
         print self.tilt_camera()
         print 'Activating camera nodes'
-        self.point_cloud2_subscribe = rospy.Subscriber('/camera/depth/points', PointCloud2, self.pcl2_callback)
+        self.point_cloud2_subscribe = rospy.Subscriber('/points_transformed', PointCloud2, self.pcl2_callback)
         rospy.sleep(1.0)
         #self.image_subscribe = rospy.Subscriber('/camera/rgb/image_mono', Image, self.img_cb)
         self.pirate_coordinates = None
@@ -68,19 +68,32 @@ class pirate_detector:
         self.point_cloud2_subscribe = None
         
     def pcl2_callback(self, data):
+        print data.header.frame_id
         print 'PCL callback gotten'
         tmp = pointcloud2_to_array(data)
         tmp = self.downsample_pointcloud(tmp)
-        tmp = self.remove_floor_and_segment(tmp)
+        #cloud = array_to_pointcloud2(tmp)
+        #tf_cloud = self.transform_pointcloud(cloud)
+        #tmp = pointcloud2_to_array(tf_cloud)
+        #tmp = self.remove_floor_and_segment(tmp)
         #fig = plt.figure()
-        #ax = Axes3D(fig)
+        #ax = fig.add_subplot(111, projection='3d')
+        #n = 100
         #for y in range(len(tmp['x'])):
-        #    ax.scatter(tmp['x'][y], tmp['y'][y], tmp['z'][y])
-        #fig.add_axes(ax)
+        #    for x in range(len(tmp['x'][0])):
+        #        if tmp['y'][y][x] < 999:
+        #            ax.scatter(tmp['x'][y][x], tmp['y'][y][x], tmp['z'][y][x])
+
+        #ax.set_xlabel('X Label')
+        #ax.set_ylabel('Y Label')
+        #ax.set_zlabel('Z Label')
+
         #plt.show()
         cloud = array_to_pointcloud2(tmp)
+        cloud.header.frame_id = '/base_link'
         self.pcpub.publish(cloud)
         pirates = self.look_for_pirates(tmp)
+        self.publish_pirates(pirates)
         self.last_pcl = data
         
     def remove_floor_and_segment(self, pointcloud_array):
@@ -89,7 +102,7 @@ class pirate_detector:
             for x in range(len(tmp['x'][0])):
                 #If y value is close to zero, we can assume it's floor and set all values to zero :)
                 #If z value is over 2, we remove it as we don't need to see that far
-                if abs(tmp['y'][y][x]) < 0.005 or abs(tmp['z'][y][x]) > 2.0:
+                if abs(tmp['z'][y][x]) < 0.005 or abs(tmp['x'][y][x]) > 2.0:
                     tmp['x'][y][x] = 999
                     tmp['y'][y][x] = 999
                     tmp['z'][y][x] = 999
@@ -130,7 +143,15 @@ class pirate_detector:
         result['y'] = result_y
         result['z'] = result_z
         return result
+
+    def transform_pointcloud(self, cloud):
+        listener = tf.TransformListener()
+        print dir(cloud)
+        return [listener.transformPoint('/map', PointStamped(cloud.header, p).point) for p in cloud.points]
         
+    def publish_pirates(self, pirates):
+        self.pirate_publisher.publish(pirates)
+
     def look_for_pirates(self, pointcloud_array, offset=0.02):
         tmp = pointcloud_array
         #Let's look something like 1X3 objects from the cloud, they should be pirates?
@@ -139,14 +160,14 @@ class pirate_detector:
         for y in range(len(tmp['x'])):
             if y > 7:
                 for x in range(len(tmp['x'][0])):
-                    if tmp['y'][y][x] > 0.04 and tmp['y'][y][x] < 0.06:
-                        z1 = abs(tmp['z'][y][x])
-                        z2 = abs(tmp['z'][y - 1][x])
-                        z3 = abs(tmp['z'][y - 2][x])
-                        z7 = abs(tmp['z'][y - 6][x])
+                    if tmp['z'][y][x] > -0.65 and tmp['z'][y][x] < -0.6 and tmp['x'][y][x] < 1.8:
+                        z1 = abs(tmp['x'][y][x])
+                        z2 = abs(tmp['x'][y - 1][x])
+                        z3 = abs(tmp['x'][y - 2][x])
+                        z7 = abs(tmp['x'][y - 6][x])
                         if abs(z1 - z2) < offset and abs(z1 - z3) < offset and abs(z1 - z7) > offset:
                             accept = True
-                            point = [tmp['z'][y][x], tmp['y'][y][x], tmp['x'][y][x]]
+                            point = [tmp['x'][y][x], tmp['y'][y][x], tmp['z'][y][x]]
                             for pirate in pirates:
                                 accept = self.distance(pirate, point)
                                 if not accept:
@@ -156,7 +177,18 @@ class pirate_detector:
                                 pirates.append(point)
         for p in pirates:
             print p
-        return pirates
+        path1 = Path()
+        camerapoint = PoseStamped()
+        for p in pirates:
+            quaternion = quaternion_from_euler(0, 0, math.atan2(p[1]-0, p[0]-0))
+            camerapoint.header.frame_id = 'map'
+            camerapoint.header.stamp = rospy.Time.now()
+            camerapoint.pose.position.x = p[0]
+            camerapoint.pose.position.y = p[1]
+            camerapoint.pose.orientation.w = quaternion[3]
+            camerapoint.pose.orientation.z = quaternion[2]
+            path1.poses.append(camerapoint)
+        return path1
         
     def distance(self, p1, p2):
         """

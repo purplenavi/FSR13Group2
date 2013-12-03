@@ -358,7 +358,7 @@ class TaskPlanner():
             self.explorer_pub.publish('Gimme sum coordinates, mate')
             self.parent.update_textbox('Explorer', 'Asking next coordinates')
             # Trying with just one movement, reassigned when action movement succeeded (done_callback or feedback)
-            explorer_pub.unregister()
+            self.explorer_pub.unregister()
             self.exit = False
         else:
             print 'executing task'
@@ -411,7 +411,7 @@ class TaskPlanner():
 	self.parent.actionclient.cancel_all_goals()
         self.move_goal = MoveBaseGoal(target_pose=self.parent.pirates.pop())
         print 'Pirate at: ' + str(self.move_goal)
-        self.parent.update_textbox('Moving towards pirate:', self.move_goal)
+        self.parent.update_textbox('Moving towards pirate:', str(self.move_goal))
         self.parent.actionclient.send_goal(self.move_goal, feedback_cb=self.parent.feedback)
 
     def manipulatorCb(self, msg):
@@ -502,6 +502,7 @@ class TaskPlanner():
 if __name__ == "__main__":
     from python_qt_binding.QtGui import QApplication
     import sys
+    print 'lol'
     rospy.init_node("gui_plannerz")
     app = QApplication(sys.argv)
     q = Widgetti()
