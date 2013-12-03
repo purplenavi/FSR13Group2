@@ -51,7 +51,7 @@ class Widgetti(QWidget):
         self.actionclient = actionlib.SimpleActionClient('move_base', MoveBaseAction)
         
         #self.notificationPub = rospy.Publisher('notification', RideNotification)
-        self.actionclient.wait_for_server()
+        
         self.debug_stream = QTextEdit(self)
         
         self.robomap = RoboMap(tf = self.tf, parent=self)
@@ -133,19 +133,6 @@ class Widgetti(QWidget):
         map_x = -((x - self.robomap.origin[0])/self.robomap.resolution) + self.robomap.w
         self.robomap.point = self.robomap.draw_point(map_x, map_y, color=Qt.blue, rad=3.0)
         
-    def done_callback(self, status, result):
-        if status is GoalStatus.RECALLED:
-            print 'recalled'
-        elif status is GoalStatus.SUCCEEDED:
-            print 'success'
-        elif status is GoalStatus.REJECTED:
-            print 'rejected'
-        elif status is GoalStatus.ABORTED:
-            print 'aborted'
-        else:
-            print 'sumthing else'
-            print goal_states.get(status)
-
     def pirate_callback(self, data):
         if self.pirate_update:
             for z in data.poses:
@@ -159,36 +146,6 @@ class Widgetti(QWidget):
                 self.dead_pirates.append(z)
             self.dead_pirate_update = False
             self.robomap.insert_to_map(self.dead_pirates)
-
-    def feedback(self, feedback):
-        print 'in the feedback lol'
-        pose_stamp = feedback.base_position
-        self.timer += 1
-        #if self.pirate_detector.move_goal:
-            #self.update_textbox('Current distance from goal', str(self.distance(self.pirate_detector.move_goal, pose_stamp)))
-        if self.taskplanner.move_goal and self.distance(self.taskplanner.move_goal, pose_stamp) < 0.2:
-            self.timer = 0
-            #print str(self.distance(self.pirate_detector.move_goal, pose_stamp))
-            # this check cancels the goal if the robot is "close enough"
-            # move_base will endlessly spin sometimes without this code
-            self.actionclient.cancel_goal()
-            rospy.sleep(1.0)
-            self.goal = None
-            #notification = RideNotification()
-            #notification.level = RideNotification.INFO
-            #notification.msg = "Movement Complete!"
-            #self.notificationPub.publish(notification)
-            #self.update_textbox('Moving to grabbing', 'YAY!')
-            print 'Moving to next state from ' + str(self.taskplanner.state)
-            self.taskplanner.state = self.taskplanner.state + 1
-            self.waiting = False
-            self.taskplanner.explorer_pub = rospy.Publisher('explore_next_point', String, latch=False)
-        if self.timer > 500:
-            self.actionclient.cancel_goal()
-            self.goal = None
-            self.taskplanner.state = self.taskplanner.state + 1
-            self.waiting = False
-            self.timer = 0
             
     def distance(self, t1, t2):
         """
@@ -330,174 +287,6 @@ class RoboMap(QGraphicsView):
         else:
             self.scale(0.7, 0.7)
 
-        
-class TaskPlanner():
-
-
-    def __init__(self, manip_topic = '/manip_servo_angles', driver_topic = 'RosAria/cmd_vel', parent = None):
-        self.state = 0
-        self.move_goal = None
-        self.parent = parent
-        self.manipulator = manip_topic
-        self.manipulator_action = rospy.Publisher(self.manipulator, Vector3, latch=False)
-        self.driver = rospy.Publisher(driver_topic, Twist, latch=False)
-        self.explorer_sub = rospy.Subscriber('/explore_point', PoseStamped, self.explorer_callback)
-        self.explorer_pub = rospy.Publisher('explore_next_point', String, latch=False)
-        rospy.sleep(1.0)
-        self.home = [0.0, 0.0]
-        self.exit = False
-        
-        self.openManipulator() # To ensure it's all the way opened
-
-    def execute(self):
-        if not self.parent.pirates:
-            print 'NO PIRATES ASSHOLE!'
-            tmp = self.parent.get_data_from_camera()
-            if tmp:
-                print 'yay'
-            self.explorer_pub.publish('Gimme sum coordinates, mate')
-            self.parent.update_textbox('Explorer', 'Asking next coordinates')
-            # Trying with just one movement, reassigned when action movement succeeded (done_callback or feedback)
-            self.explorer_pub.unregister()
-            self.exit = False
-        else:
-            print 'executing task'
-            while True:
-                if self.exit:
-                    break
-                if not self.parent.waiting:
-                    self.parent.update_textbox('Current state',str(self.state))
-                    if self.state == 0:
-                        #self.parent.update_textbox('Moving to pirate','Trolloloo')
-                        print 'Moving to pirate for first time'
-                        self.move_to_pirate()
-                        self.parent.waiting = True
-                        
-                    elif self.state == 1:
-                        self.parent.actionclient.cancel_all_goals()
-                        #self.parent.update_textbox('Closing and going home','Trolloloo')
-                        print 'closing'
-                        self.parent.waiting = True
-                        self.grab_figure()
-                        
-                    elif self.state == 2:
-                        self.goHomeBase()
-                        self.parent.waiting = True
-                        #rospy.sleep(2.0)
-                        #self.state = 2
-                        
-                    elif self.state == 3:
-                        self.parent.actionclient.cancel_all_goals()
-                        print 'dropping'
-                        self.parent.waiting = True
-                        self.drop_figure()
-                        rospy.sleep(2.0)
-                        if not self.parent.pirates:
-                            print 'No more pirates lol'
-                            self.exit = True
-                    
-                    elif self.state == 4:
-                        print 'State 4 what the nigger?!'
-                        self.state = 0
-                else:
-                    pass
-
-    def explorer_callback(self,data):
-        self.parent.update_textbox('Next coordinates from explorer', '('+str(data.pose.position.x)+','+str(data.pose.position.y)+')')
-        print data
-        self.goToLocation(data.pose.position.x,data.pose.position.y)
-
-    def move_to_pirate(self):
-	self.parent.actionclient.cancel_all_goals()
-        self.move_goal = MoveBaseGoal(target_pose=self.parent.pirates.pop())
-        print 'Pirate at: ' + str(self.move_goal)
-        self.parent.update_textbox('Moving towards pirate:', str(self.move_goal))
-        self.parent.actionclient.send_goal(self.move_goal, feedback_cb=self.parent.feedback)
-
-    def manipulatorCb(self, msg):
-        self.parent.update_textbox('Manipulator subscription',msg)
-        
-    def goToLocation(self,x,y):
-        location = PoseStamped()
-        quaternion = quaternion_from_euler(0, 0, math.atan2(y-self.parent.robomap.origin[1], x-self.parent.robomap.origin[0]))
-        location.header.frame_id = 'map'
-        location.header.stamp = rospy.Time.now()
-        location.pose.position.x = x
-        location.pose.position.y = y
-        location.pose.orientation.w = quaternion[3]
-        location.pose.orientation.z = quaternion[2]
-        location = MoveBaseGoal(target_pose=location)
-        self.move_goal = location
-        self.parent.actionclient.send_goal(location, feedback_cb=self.parent.feedback)
-        
-    def grab_figure(self):
-        self.closeManipulator()
-        # Closing
-        rospy.sleep(1.0)
-        self.state += 1
-        self.parent.waiting = False
-
-    def drop_figure(self):
-        self.openManipulator()
-        # Opening
-        rospy.sleep(1.0)
-        reverse_pose = self.parent.pose
-        reverse_pose.pose.pose.position.x -= 0.2
-        self.reverse(0.3)
-        timer = 0
-        while self.parent.waiting:
-            print self.reverse_feedback(self.parent.pose, reverse_pose)
-            if self.reverse_feedback(self.parent.pose, reverse_pose) < 0.4:
-                self.parent.update_textbox('Reversing done','Yay!')
-                #Go back to first state
-                self.state = 0
-                print 'setting the state back to 0'
-                self.parent.waiting = False
-            timer+=1
-            if timer > 1000:
-                self.state = 0
-                print 'timer limit reached'
-                self.parent.waiting = False
-                break
-        
-    def reverse_feedback(self, t1, t2):
-        """
-        Given two PoseStamped's, determine the distance
-        """
-        out = 0
-        for dimension in ('x', 'y'):
-            out += math.pow(getattr(t1.pose.pose.position, dimension) - getattr(t2.pose.pose.position, dimension), 2)
-        return math.sqrt(out)
-
-    def reverse(self,distance=0.2):
-        r = rospy.Rate(1.0) # 1 Hz
-        movement = Twist()
-        movement.linear.x = -0.15 # speed
-        time = (-1.0*distance/movement.linear.x)
-        for i in range(int(time)): # ~ distance
-            self.driver.publish(movement)
-            r.sleep()
-        movement = Twist()
-        movement.angular.z = 1.57/2 # ~45 deg/s
-        for i in range(4):
-            self.driver.publish(movement)
-            r.sleep()
-        self.driver.publish(Twist())
-
-    def goHomeBase(self):
-        self.goToLocation(self.home[0],self.home[1])
-        print 'Getting this pirate home'
-
-    def closeManipulator(self):
-        self.manipulator_action.publish(Vector3(x=0.0))
-        self.parent.update_textbox('Manipulator action','closing')
-        #time.sleep(10) # just for testing before manipulator state publisher
-
-    def openManipulator(self):
-        self.manipulator_action.publish(Vector3(x=180.0))
-        self.parent.update_textbox('Manipulator action','opening')
-        #time.sleep(10) # just for testing before manipulator state publisher
-        
 
 if __name__ == "__main__":
     from python_qt_binding.QtGui import QApplication
