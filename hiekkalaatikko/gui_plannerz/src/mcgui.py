@@ -67,12 +67,12 @@ class Widgetti(QWidget):
 
         self.taskplanning = QPushButton('Collect figures')
         self.taskplanning.clicked.connect(self.taskplanner_execute)
-        self.button_layout.addWidget(self.open_manip)
-        self.button_layout.addWidget(self.close_manip)
-        self.button_layout.addWidget(self.taskplanning)
+        #self.button_layout.addWidget(self.open_manip)
+        #self.button_layout.addWidget(self.close_manip)
+        #self.button_layout.addWidget(self.taskplanning)
 
-        self.button_layout.addWidget(self.open_manip)
-        self.button_layout.addWidget(self.close_manip)
+        #self.button_layout.addWidget(self.open_manip)
+        #self.button_layout.addWidget(self.close_manip)
 
         self.map_layout.addWidget(self.robomap)
         self.map_layout.addWidget(self.debug_stream)
@@ -92,6 +92,9 @@ class Widgetti(QWidget):
         self.pirate_update = True
         self.dead_pirate_update = True
         
+    def taskplanner_execute(self):
+        print 'TaskPlanner should start working now'
+
     def pirate_callback(self, data):
         if self.pirate_update:
             for z in data.poses:
@@ -124,6 +127,8 @@ class Widgetti(QWidget):
 
     def update_textbox_cb(self, msg):
         txts = msg.data.split('|HEADERMSGSPLITTER|')
+        if len(txts) < 2:
+            txts = ('TaskPlanner',txts[0])
         self.update_textbox(txts[0],txts[1])
 
     def pose_callback(self, data):

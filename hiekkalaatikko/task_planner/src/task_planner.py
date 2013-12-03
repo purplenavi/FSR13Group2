@@ -14,8 +14,8 @@ from move_base_msgs.msg import MoveBaseAction, MoveBaseGoal
 import actionlib
 from actionlib_msgs.msg import GoalStatus
 import sys
-sys.path.insert(0, '../../explorer/src/')
-from explorer import Explorer
+#sys.path.insert(0, '../../explorer/src/')
+#from explorer import Explorer
 
 goal_states={0:'PENDING',1:'ACTIVE',2:'PREEMPTED',3:'SUCCEEDED',4:'ABORTED',5:'REJECTED',6:'PREEMPTING',7:'RECALLING',8:'RECALLED',9:'LOST'}
 robot_states={-1:'Exploring',0:'Seeking for pirates',1:'Grabbing figure',2:'Taking injured pirate home',3:'Dropping injured pirate home'}
@@ -26,7 +26,7 @@ class TaskPlanner():
     def __init__(self):
         self.state = 0
         self.move_goal = None
-        self.explorer = Explorer()
+        #self.explorer = Explorer()
         self.manipulator_action = rospy.Publisher('/manip_servo_angles', Vector3, latch=False)
         self.driver = rospy.Publisher('RosAria/cmd_vel', Twist, latch=False)
 
