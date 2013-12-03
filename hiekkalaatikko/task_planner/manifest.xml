@@ -1,0 +1,22 @@
+<package>
+  <description brief="task_planner">
+
+     task_planner
+
+  </description>
+  <author>Miikka Eloranta</author>
+  <license>BSD</license>
+  <review status="unreviewed" notes=""/>
+  <url>http://ros.org/wiki/task_planner</url>
+  <depend package="rospy"/>
+  <depend package="nav_msgs"/>
+  <depend package="geometry_msgs"/>
+  <depend package="std_msgs"/>
+  <depend package="move_base_msgs"/>
+  <depend package="actionlib"/>
+  <depend package="actionlib_msgs"/>
+  <depend package="tf"/>
+
+</package>
+
+

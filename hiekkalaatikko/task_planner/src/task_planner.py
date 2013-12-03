@@ -2,18 +2,14 @@
 import roslib
 roslib.load_manifest('task_planner')
 import rospy
-from nav_msgs.msg import OccupancyGrid, Path
 import numpy as np
 import math
 import tf
 from tf.transformations import quaternion_from_euler
 from geometry_msgs.msg import PoseStamped, Vector3, Twist, PoseWithCovarianceStamped
-from nav_msgs.msg import Odometry
+from nav_msgs.msg import Odometry,OccupancyGrid,Path
 from std_msgs.msg import String
-#from cv_bridge import CvBridge, CvBridgeError
-from sensor_msgs.msg import Image, PointCloud2, PointField
 import os
-#import cv
 from move_base_msgs.msg import MoveBaseAction, MoveBaseGoal
 import actionlib
 from actionlib_msgs.msg import GoalStatus
@@ -70,7 +66,7 @@ class TaskPlanner():
     def next_state(self,state = None):
         if state is None:
             self.state += 1
-        else
+        else:
             self.state = state
         if robot_states.get(self.state) is None:
             self.state = 0
@@ -260,4 +256,5 @@ def main(args):
 
 if __name__ == "__main__":
     main(sys.argv)
+
 
