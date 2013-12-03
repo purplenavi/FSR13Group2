@@ -13,7 +13,6 @@ from python_qt_binding.QtGui import QWidget, QMessageBox, QTextEdit, QLabel, QPi
 from geometry_msgs.msg import PoseStamped, Vector3, Twist, PoseWithCovarianceStamped
 from nav_msgs.msg import Odometry
 from std_msgs.msg import String
-#from cv_bridge import CvBridge, CvBridgeError
 from sensor_msgs.msg import Image, PointCloud2, PointField
 from std_msgs.msg import String
 import os
@@ -22,8 +21,6 @@ from move_base_msgs.msg import MoveBaseAction, MoveBaseGoal
 import actionlib
 from actionlib_msgs.msg import GoalStatus
 import sys
-#sys.path.insert(0, '../../pirate_detector/src/')
-#from pirate_detector import pirate_detector
 
 goal_states={0:'PENDING',1:'ACTIVE',2:'PREEMPTED',3:'SUCCEEDED',4:'ABORTED',5:'REJECTED',6:'PREEMPTING',7:'RECALLING',8:'RECALLED',9:'LOST'}
 
@@ -32,8 +29,11 @@ class Widgetti(QWidget):
     def __init__(self):
         super(Widgetti, self).__init__()
         self.layout = QVBoxLayout()
+        self.control_layout = QVBoxLayout()
         self.button_layout = QHBoxLayout()
         self.map_layout = QHBoxLayout()
+        self.console_layout = QVBoxLayout()
+        self.text_layout = QHBoxLayout()
         self.tf = tf.TransformListener()
 
         self.pirates = []
@@ -45,7 +45,7 @@ class Widgetti(QWidget):
         self.waiting = False
         #self.pirate_detector = pirate_detector() #Initializing pirate detector
 
-        self.setWindowTitle('Gui plannerz lol')
+        self.setWindowTitle('GUI for Pioneer P3-DX')
 
         self.gui_publisher = rospy.Publisher('gui_plan', Path)
         self.actionclient = actionlib.SimpleActionClient('move_base', MoveBaseAction)
@@ -57,6 +57,16 @@ class Widgetti(QWidget):
         self.robomap = RoboMap(tf = self.tf, parent=self)
         rospy.sleep(1.0)
         self.taskplanner = TaskPlanner(parent = self)
+        
+        self.left = QPushButton('Spin left')
+        self.left.clicked.connect(self.spin_left)
+        self.right = QPushButton('Spin right')
+        self.right.clicked.connect(self.spin_right)
+        self.point_move = QPushButton('Move to point')
+        self.point_move.clicked.connect(self.point_move)
+        self.control_layout.addLayout(self.left)
+        self.control_layout.addLayout(self.right)
+        self.control_layout.addLayout(self.point_move)
 
         # task planner stuff
         self.open_manip = QPushButton('Open manipulator')
@@ -64,7 +74,7 @@ class Widgetti(QWidget):
         self.close_manip = QPushButton('Close manipulator')
         self.close_manip.clicked.connect(self.taskplanner.closeManipulator)
 
-        self.taskplanning = QPushButton('Collect figures')
+        self.taskplanning = QPushButton('Execute Mission')
         self.taskplanning.clicked.connect(self.taskplanner.execute)
         self.button_layout.addWidget(self.open_manip)
         self.button_layout.addWidget(self.close_manip)
@@ -72,11 +82,14 @@ class Widgetti(QWidget):
 
         self.button_layout.addWidget(self.open_manip)
         self.button_layout.addWidget(self.close_manip)
-
+        
         self.map_layout.addWidget(self.robomap)
-        self.map_layout.addWidget(self.debug_stream)
-        self.layout.addLayout(self.map_layout)
+        self.console_layout.addLayout(self.map_layout)
+        self.console_layout.addLayout(self.control_layout)
+        self.text_layout.addWidget(self.debug_stream)
+        self.layout.addLayout(self.console_layout)
         self.layout.addLayout(self.button_layout)
+        self.layout.addLayout(self.text_layout)
         self.layout.addWidget(QLabel('Graphical interface to visualize stuff'))
         self.setLayout(self.layout)
         self.timer = 0
@@ -85,36 +98,92 @@ class Widgetti(QWidget):
         # Pirate detector subscribers
         self.pirates_sub = rospy.Subscriber('/Pirates', Path, self.pirate_callback)
         self.dead_pirates_sub = rospy.Subscriber('/Dead', Path, self.dead_pirate_callback)
-        
-        self.pirate_sub = rospy.Subscriber('Pirates', Path, self.pirate_callback)
-        self.dead_pirate_sub = rospy.Subscriber('Dead', Path, self.dead_pirate_callback)
         self.pirate_update = True
         self.dead_pirate_update = True
+        self.pose_update_timer = 0
+        self.point_goal
+        
+    def spin_left(self):
+        r = rospy.Rate(1.0) # 1 Hz
+        movement = Twist()
+        movement.angular.z = 1.57/2 # ~45 deg/s
+        for i in range(32):
+            self.taskplanner.driver.publish(movement)
+            r.sleep()
+        self.taskplanner.driver.publish(Twist())
+        
+    def spin_right(self):
+        r = rospy.Rate(1.0) # 1 Hz
+        movement = Twist()
+        movement.angular.z = -1.57/2 # ~45 deg/s
+        for i in range(32):
+            self.taskplanner.driver.publish(movement)
+            r.sleep()
+        self.taskplanner.driver.publish(Twist())
+        
+    def point_move(self):
+        if self.robomap.point:
+            w = self.robomap.w
+            res = self.robomap.resolution
+            org = self.robomap.origin
+            tmp = self.point.rect().center()
+            x1 = (w - tmp.x()) * res + org[0]
+            y1 = tmp.y() * res + org[1]
+            x2 = (w - tmp.x()) * res + org[0]
+            y2 = tmp.y() * res + org[1]
+            quaternion = quaternion_from_euler(0, 0, atan2(y2 - y1, x2 - x1))
+            pose = PoseStamped()
+            pose.header.stamp = rospy.Time.now()
+            pose.header.frame_id = "map"
+            pose.pose.position.x = x1
+            pose.pose.position.y = y1
+            pose.pose.orientation.w = quaternion[3]
+            pose.pose.orientation.z = quaternion[2]
+            self.point_goal = MoveBaseGoal(target_pose=pose)
+            self.parent.update_textbox('Moving to:', str(self.point_goal))
+            self.actionclient.send_goal(mbg, feedback_cb=self.point_feedback)
+        else:
+            self.update_textbox('CANNOT EXECUTE MOVE: ', 'NO POINT SELECTED')
+            
+    def point_feedback(self, feedback):
+        pose_stamp = feedback.base_position
+        self.timer += 1
+        if self.pose_update_timer > 20:
+            self.update_pose_in_map()
+            self.pose_update_timer = 0
+        if self.point_goal and self.distance(self.point_goal, pose_stamp) < 0.2:
+            self.timer = 0
+            #print str(self.distance(self.pirate_detector.move_goal, pose_stamp))
+            # this check cancels the goal if the robot is "close enough"
+            # move_base will endlessly spin sometimes without this code
+            self.actionclient.cancel_goal()
+            rospy.sleep(1.0)
+            self.point_goal = None
+        if self.timer > 500:
+            self.actionclient.cancel_goal()
+            self.update_textbox('Could not reach target: ', 'Timeout')
+        self.pose_update_timer += 1
         
     def pirate_callback(self, data):
         if self.pirate_update:
             for z in data.poses:
                 self.pirates.append(z)
+            self.update_textbox('Pirates in FOV: ', str(len(self.pirates)))
             self.pirate_update = False
     
     def dead_pirate_callback(self, data):
         if self.dead_pirate_update:
             for z in data.poses:
                 self.dead_pirates.append(z)
+            self.update_textbox('DEAD COUNT: ', str(len(self.pirates)))
+            if self.dead_pirate_objects:
+                self.clear_dead()
             self.dead_pirate_update = False
+            self.robomap.insert_to_map(self.dead_pirates)
         
-    def get_data_from_camera(self):
+    def clear_dead(self):
         for z in self.dead_pirate_objects:
             self.robomap.scene.removeItem(z)
-        #self.dead_pirate_objects = None
-        #self.pirate_detector.activate_node()
-        #while not self.pirate_detector.pirate_coordinates:
-        #    rospy.sleep(0.5)
-        #for z in self.pirate_detector.pirate_coordinates.poses:
-        #    self.pirates.append(z)
-        #for z in self.pirate_detector.dead_pirate_coordinates.poses:
-        #    self.dead_pirates.append(z)
-        #self.robomap.update_map(self.dead_pirates)
         return True
 
     def update_textbox(self, header, txt):
@@ -122,10 +191,12 @@ class Widgetti(QWidget):
         self.debug_stream.insertPlainText(txt+'\n')
         
     def pose_callback(self, data):
+        self.pose = data
+        
+    def update_pose_in_map(self):
         if self.robomap.point:
             self.robomap.scene.removeItem(self.robomap.point)
             self.robomap.point = None
-        self.pose = data
         x = self.pose.pose.pose.position.x
         y = self.pose.pose.pose.position.y
         #transform pose coordinates to map coordinates
@@ -146,26 +217,13 @@ class Widgetti(QWidget):
             print 'sumthing else'
             print goal_states.get(status)
 
-    def pirate_callback(self, data):
-        if self.pirate_update:
-            for z in data.poses:
-                self.pirates.append(z)
-            self.update_textbox('Number of pirates: ', str(len(self.pirates)))
-            self.pirate_update = False
-
-    def dead_pirate_callback(self, data):
-        if self.dead_pirate_update:
-            for z in data.poses:
-                self.dead_pirates.append(z)
-            self.dead_pirate_update = False
-            self.robomap.insert_to_map(self.dead_pirates)
-
     def feedback(self, feedback):
         print 'in the feedback lol'
         pose_stamp = feedback.base_position
         self.timer += 1
-        #if self.pirate_detector.move_goal:
-            #self.update_textbox('Current distance from goal', str(self.distance(self.pirate_detector.move_goal, pose_stamp)))
+        if self.pose_update_timer > 20:
+            self.update_pose_in_map()
+            self.pose_update_timer = 0
         if self.taskplanner.move_goal and self.distance(self.taskplanner.move_goal, pose_stamp) < 0.2:
             self.timer = 0
             #print str(self.distance(self.pirate_detector.move_goal, pose_stamp))
@@ -174,11 +232,6 @@ class Widgetti(QWidget):
             self.actionclient.cancel_goal()
             rospy.sleep(1.0)
             self.goal = None
-            #notification = RideNotification()
-            #notification.level = RideNotification.INFO
-            #notification.msg = "Movement Complete!"
-            #self.notificationPub.publish(notification)
-            #self.update_textbox('Moving to grabbing', 'YAY!')
             print 'Moving to next state from ' + str(self.taskplanner.state)
             self.taskplanner.state = self.taskplanner.state + 1
             self.waiting = False
@@ -189,6 +242,7 @@ class Widgetti(QWidget):
             self.taskplanner.state = self.taskplanner.state + 1
             self.waiting = False
             self.timer = 0
+        self.pose_update_timer += 1
             
     def distance(self, t1, t2):
         """
@@ -323,6 +377,13 @@ class RoboMap(QGraphicsView):
                 self.points = [ell]
         return ell
         
+    def mousePressEvent(self, e):
+        point = self.mapToScene(e.x(), e.y())
+        if self.point:
+            self.scene.removeItem(self.point)
+            self.point = None
+        self.point = self.draw_point(point.x(), point.y(), Qt.yellow, 1.0)
+        
     def wheelEvent(self, e):
         e.ignore()
         if e.delta() > 0:
@@ -368,14 +429,11 @@ class TaskPlanner():
                 if not self.parent.waiting:
                     self.parent.update_textbox('Current state',str(self.state))
                     if self.state == 0:
-                        #self.parent.update_textbox('Moving to pirate','Trolloloo')
                         print 'Moving to pirate for first time'
                         self.move_to_pirate()
                         self.parent.waiting = True
                         
                     elif self.state == 1:
-                        self.parent.actionclient.cancel_all_goals()
-                        #self.parent.update_textbox('Closing and going home','Trolloloo')
                         print 'closing'
                         self.parent.waiting = True
                         self.grab_figure()
@@ -383,11 +441,8 @@ class TaskPlanner():
                     elif self.state == 2:
                         self.goHomeBase()
                         self.parent.waiting = True
-                        #rospy.sleep(2.0)
-                        #self.state = 2
                         
                     elif self.state == 3:
-                        self.parent.actionclient.cancel_all_goals()
                         print 'dropping'
                         self.parent.waiting = True
                         self.drop_figure()
@@ -397,7 +452,7 @@ class TaskPlanner():
                             self.exit = True
                     
                     elif self.state == 4:
-                        print 'State 4 what the nigger?!'
+                        print 'Something went terribly wrong???!'
                         self.state = 0
                 else:
                     pass
@@ -408,7 +463,7 @@ class TaskPlanner():
         self.goToLocation(data.pose.position.x,data.pose.position.y)
 
     def move_to_pirate(self):
-	self.parent.actionclient.cancel_all_goals()
+        self.parent.actionclient.cancel_all_goals()
         self.move_goal = MoveBaseGoal(target_pose=self.parent.pirates.pop())
         print 'Pirate at: ' + str(self.move_goal)
         self.parent.update_textbox('Moving towards pirate:', str(self.move_goal))
