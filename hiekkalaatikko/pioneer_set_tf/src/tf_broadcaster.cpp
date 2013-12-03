@@ -1,6 +1,14 @@
 #include <ros/ros.h>
 #include <tf/transform_broadcaster.h>
+#include <tf/transform_listener.h>
 #include <geometry_msgs/Vector3.h>
+#include <boost/math/constants/constants.hpp>
+#include <pcl_ros/point_cloud.h>
+#include <sensor_msgs/PointCloud2.h>
+// PCL specific includes
+#include <pcl/ros/conversions.h>
+#include <pcl/point_cloud.h>
+#include <pcl/point_types.h>
 
 static const char NODE[] = "tf_camera_broadcaster";
 
@@ -13,9 +21,15 @@ static tf::Transform tf2(tf::Quaternion(0,0,0,1), tfFromBaseToTilt);
 //Total tf is from base to tilt x tilt to cam
 static tf::Transform TF = tf1*tf2;
 
+typedef pcl::PointCloud<pcl::PointXYZ> PointCloud;
+
+static ros::Publisher pcl_pub;
+
+tf::TransformListener *tf_listener; 
+
 double getRadian(double degree)
 {
-    return (degree * 3.14)/180.0;
+    return (degree * boost::math::constants::pi())/180.0;
 }
 
 void publish(const tf::Transform &tf, const char *parent, const char *frame)
@@ -41,13 +55,32 @@ void Callback(const geometry_msgs::Vector3::ConstPtr& msg)
     
 }
 
+void pclCallback(const PointCloud::ConstPtr& msg) {
+	if ((msg->width * msg->height) == 0) {
+		ROS_INFO("PointCloud width or height zero!");
+		return ;
+	}
+	sensor_msgs::PointCloud2Ptr transformed_cloud = sensor_msgs::PointCloud2Ptr(new sensor_msgs::PointCloud2)
+	// Wait for transformation
+
+	// Not sure which one on fuerte
+	// pcl_ros::transformPointCloud("/base_link", TF, msg, transformed_cloud);
+	tf_listener->waitForTransform("/base_link", (*msg).header.frame_id, (*msg).header.stamp, ros::Duration(5.0));
+	pcl_ros::transformPointCloud("/base_link", TF, ros::Time::now(), msg, transformed_cloud);
+	
+	pcl_pub.publish(transformed_cloud);
+}
+
 int main(int argc, char** argv)
 {
     ros::init(argc, argv, NODE);
     ros::NodeHandle n;
     ros::Rate r(100);
     ros::Subscriber sub = n.subscribe("ptu_servo_states", 1000, Callback);
+	ros::Subscriber pcl_sub = n.subscribe<PointCloud>("/camera/depth/points", 1, pclCallback);
+	tf_listener = new TransformListener();
     publish(TF, "base_link", "camera_link");
+	pcl_pub = nh.advertise<PointCloud>("/camera/depth/points/transformed", 1);
     while (n.ok())
     {
         ros::spinOnce();
