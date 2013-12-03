@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 import roslib
-roslib.load_manifest('task_plannerz')
+roslib.load_manifest('task_planner')
 import rospy
 from nav_msgs.msg import OccupancyGrid, Path
 import numpy as np
@@ -241,3 +241,4 @@ def main(args):
 
 if __name__ == "__main__":
     main(sys.argv)
+
