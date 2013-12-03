@@ -45,7 +45,7 @@ int main(int argc, char** argv)
     
     ros::Duration(2.0).sleep();// This delay is so critical, otherwise the first published object may not be added in the collision_space by the environment_server
 
-    ros::Subscriber sub = node.subscribe("/Dead", 1, transformCallback);
+    ros::Subscriber sub = node.subscribe("/Dead", 1, Callback);
     
     ros::Rate rate(10.0);
     
