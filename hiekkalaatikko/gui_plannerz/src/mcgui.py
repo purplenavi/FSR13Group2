@@ -53,6 +53,7 @@ class Widgetti(QWidget):
         #self.notificationPub = rospy.Publisher('notification', RideNotification)
         
         self.debug_stream = QTextEdit(self)
+        self.textbox_subscriber = rospy.Subscriber('/task_planner/textbox', String, self.update_textbox_cb)
         
         self.robomap = RoboMap(tf = self.tf, parent=self)
         rospy.sleep(1.0)
@@ -120,7 +121,11 @@ class Widgetti(QWidget):
     def update_textbox(self, header, txt):
         self.debug_stream.insertPlainText(header + '\n')
         self.debug_stream.insertPlainText(txt+'\n')
-        
+
+    def update_textbox_cb(self, msg):
+        txts = msg.data.split('|HEADERMSGSPLITTER|')
+        self.update_textbox(txts[0],txts[1])
+
     def pose_callback(self, data):
         if self.robomap.point:
             self.robomap.scene.removeItem(self.robomap.point)

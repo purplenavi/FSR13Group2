@@ -12,15 +12,14 @@ from nav_msgs.msg import Odometry
 from std_msgs.msg import String
 #from cv_bridge import CvBridge, CvBridgeError
 from sensor_msgs.msg import Image, PointCloud2, PointField
-from std_msgs.msg import String
 import os
 #import cv
 from move_base_msgs.msg import MoveBaseAction, MoveBaseGoal
 import actionlib
 from actionlib_msgs.msg import GoalStatus
 import sys
-#sys.path.insert(0, '../../pirate_detector/src/')
-#from pirate_detector import pirate_detector
+sys.path.insert(0, '../../explorer/src/')
+from explorer import Explorer
 
 goal_states={0:'PENDING',1:'ACTIVE',2:'PREEMPTED',3:'SUCCEEDED',4:'ABORTED',5:'REJECTED',6:'PREEMPTING',7:'RECALLING',8:'RECALLED',9:'LOST'}
 robot_states={-1:'Exploring',0:'Seeking for pirates',1:'Grabbing figure',2:'Taking injured pirate home',3:'Dropping injured pirate home'}
@@ -31,25 +30,36 @@ class TaskPlanner():
     def __init__(self):
         self.state = 0
         self.move_goal = None
+        self.explorer = Explorer()
         self.manipulator_action = rospy.Publisher('/manip_servo_angles', Vector3, latch=False)
         self.driver = rospy.Publisher('RosAria/cmd_vel', Twist, latch=False)
 
-        self.state_pub = rospy.Publisher('/task_planner_state', String, latch=False)
+        self.laser = rospy.Subscriber('/map',OccupancyGrid,self.map_callback)
+
+        self.state_pub = rospy.Publisher('/task_planner/state', String, latch=False)
+        self.textbox_pub = rospy.Publisher('/task_planner/textbox', String)
 
         self.actionclient = actionlib.SimpleActionClient('move_base', MoveBaseAction)
         self.actionclient.wait_for_server()
+        self.pose_sub = rospy.Subscriber('RosAria/pose', Odometry, self.pose_callback)
 
         self.pirate_detector = rospy.Subscriber('/Pirates', Path, self.pirate_callback)
+        self.origin = None
+        self.pose = None
         self.pirates = []
         self.pirates_called = False
+        self.waiting = False
         rospy.sleep(1.0)
         self.home = [0.0, 0.0]
         self.openManipulator() # To ensure it's all the way opened
 
-    def explore(self):
-        self.state = -1
-        print 'Task planner state changed to: '+str(self.state)+' - '+robot_states.get(self.state)
-        self.state_pub.publish(robot_states.get(self.state))
+    def map_callback(self, msg):
+        self.origin = (msg.info.origin.position.x, msg.info.origin.position.y)
+
+    def update_textbox(self, header, txt):
+        msg = String()
+        msg.data=str(header)+'|HEADERMSGSPLITTER|'+str(txt)
+        self.textbox_pub.publish(msg)
 
     def pirate_callback(self, data):
         for z in data.poses:
@@ -57,13 +67,22 @@ class TaskPlanner():
         if self.state == 0:
             self.pirates_called = True
 
-    def next_state(self):
-        self.state += 1
-        if robot.states.get(self.state) is None:
+    def next_state(self,state = None):
+        if state is None:
+            self.state += 1
+        else
+            self.state = state
+        if robot_states.get(self.state) is None:
             self.state = 0
         elif robot.state == 0:
             self.pirates_called = False
         print 'Task planner state changed to: '+str(self.state)+' - '+robot_states.get(self.state)
+        statemsg = String()
+        statemsg.data = robot_states.get(self.state)
+        self.state_pub.publish(statemsg)
+
+    def explore(self):
+        self.next_state(-1)
         self.state_pub.publish(robot_states.get(self.state))
 
     def execute(self):
@@ -72,37 +91,37 @@ class TaskPlanner():
             if tmp:
                 print 'yay'
             self.explorer_pub.publish('Gimme sum coordinates, mate')
-            self.parent.update_textbox('Explorer', 'Asking next coordinates')
+            self.update_textbox('Explorer', 'Asking next coordinates')
             # Trying with just one movement, reassigned when action movement succeeded (done_callback or feedback)
             self.explorer_pub.unregister()
             self.exit = False
         else:
             print 'executing task'
             while True:
-                if not self.parent.waiting:
-                    self.parent.update_textbox('Current state',robot_states.get(self.state)+' ('+str(self.state)+')')
+                if not self.waiting:
+                    self.update_textbox('Current state',robot_states.get(self.state)+' ('+str(self.state)+')')
                     if self.state == 0: 
                         print 'Moving to pirate for first time'
                         self.move_to_pirate()
-                        self.parent.waiting = True
+                        self.waiting = True
                         
                     elif self.state == 1:
-                        self.parent.actionclient.cancel_all_goals()
+                        self.actionclient.cancel_all_goals()
                         print 'closing'
-                        self.parent.waiting = True
+                        self.waiting = True
                         self.grab_figure()
                         
                     elif self.state == 2:
                         self.goHomeBase()
-                        self.parent.waiting = True
+                        self.waiting = True
                         
                     elif self.state == 3:
-                        self.parent.actionclient.cancel_all_goals()
+                        self.actionclient.cancel_all_goals()
                         print 'dropping'
-                        self.parent.waiting = True
+                        self.waiting = True
                         self.drop_figure()
                         rospy.sleep(2.0)
-                        if not self.parent.pirates:
+                        if not self.pirates:
                             print 'No more pirates lol'
                             self.exit = True
                     elif self.state == -1:
@@ -140,18 +159,18 @@ class TaskPlanner():
             self.timer = 0
 
     def move_to_pirate(self):
-        self.parent.actionclient.cancel_all_goals()
-        self.move_goal = MoveBaseGoal(target_pose=self.parent.pirates.pop())
+        self.actionclient.cancel_all_goals()
+        self.move_goal = MoveBaseGoal(target_pose=self.pirates.pop())
         print 'Pirate at: ' + str(self.move_goal)
-        self.parent.update_textbox('Moving towards pirate:', str(self.move_goal))
-        self.parent.actionclient.send_goal(self.move_goal, feedback_cb=self.parent.feedback)
+        self.update_textbox('Moving towards pirate:', str(self.move_goal))
+        self.actionclient.send_goal(self.move_goal, feedback_cb=self.feedback)
 
     def manipulatorCb(self, msg):
-        self.parent.update_textbox('Manipulator subscription',msg)
+        self.update_textbox('Manipulator subscription',msg)
         
     def goToLocation(self,x,y):
         location = PoseStamped()
-        quaternion = quaternion_from_euler(0, 0, math.atan2(y-self.parent.robomap.origin[1], x-self.parent.robomap.origin[0]))
+        quaternion = quaternion_from_euler(0, 0, math.atan2(y-self.origin[1], x-self.origin[0]))
         location.header.frame_id = 'map'
         location.header.stamp = rospy.Time.now()
         location.pose.position.x = x
@@ -160,36 +179,36 @@ class TaskPlanner():
         location.pose.orientation.z = quaternion[2]
         location = MoveBaseGoal(target_pose=location)
         self.move_goal = location
-        self.parent.actionclient.send_goal(location, feedback_cb=self.parent.feedback)
+        self.actionclient.send_goal(location, feedback_cb=self.feedback)
         
     def grab_figure(self):
         self.closeManipulator()
         # Closing
         rospy.sleep(1.0)
         self.next_state()
-        self.parent.waiting = False
+        self.waiting = False
 
     def drop_figure(self):
         self.openManipulator()
         # Opening
         rospy.sleep(1.0)
-        reverse_pose = self.parent.pose
+        reverse_pose = self.pose
         reverse_pose.pose.pose.position.x -= 0.2
         self.reverse(0.3)
         timer = 0
-        while self.parent.waiting:
-            print self.reverse_feedback(self.parent.pose, reverse_pose)
-            if self.reverse_feedback(self.parent.pose, reverse_pose) < 0.4:
-                self.parent.update_textbox('Reversing done','Yay!')
+        while self.waiting:
+            print self.reverse_feedback(self.pose, reverse_pose)
+            if self.reverse_feedback(self.pose, reverse_pose) < 0.4:
+                self.update_textbox('Reversing done','Yay!')
                 #Go back to first state
                 self.next_state()
                 print 'setting the state back to 0'
-                self.parent.waiting = False
+                self.waiting = False
             timer+=1
             if timer > 1000:
                 self.next_state()
                 print 'timer limit reached'
-                self.parent.waiting = False
+                self.waiting = False
                 break
         
     def reverse_feedback(self, t1, t2):
@@ -222,12 +241,12 @@ class TaskPlanner():
 
     def closeManipulator(self):
         self.manipulator_action.publish(Vector3(x=0.0))
-        self.parent.update_textbox('Manipulator action','closing')
+        self.update_textbox('Manipulator action','closing')
         #time.sleep(10) # just for testing before manipulator state publisher
 
     def openManipulator(self):
         self.manipulator_action.publish(Vector3(x=180.0))
-        self.parent.update_textbox('Manipulator action','opening')
+        self.update_textbox('Manipulator action','opening')
         #time.sleep(10) # just for testing before manipulator state publisher
 
 def main(args):
