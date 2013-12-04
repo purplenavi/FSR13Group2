@@ -230,23 +230,19 @@ class Explorer:
         return True
         
 
-    def calculate_weightmap(self, msg):
-        if self.map is None or self.pose is None or self.resolution is None:
-            print 'Cannot get next point, Explorer not initialized yet'
-            return
-        time_start = rospy.get_time()
-        # There's no reason for me to do anything with the msg, wadap...
-        print 'Wow! I just got a message from task planner: '+str(msg)
+    def calculate_weightmap(self):
+
         unexplored = np.where(self.map == 0) # Giving the indexes of map containing the zeros
         if len(unexplored) == 0:
             print 'Whole map is already checked out so the exploring is done!';
             return None
-        weightmap = np.zeros((len(self.map),len(self.map[0])))
-        # Check smallest distance from walls, obstacles or prechecked point for each zero point
-        print 'Starting weightmap calculation, unexplored: ' + str(len(unexplored[0]))
+        
+        self.weightmap = np.zeros((len(self.map),len(self.map[0])))
         
         searchdistance = 8
         
+        # Check smallest distance from walls, obstacles or prechecked point for each zero point
+        print 'Starting weightmap calculation, unexplored: ' + str(len(unexplored[0]))
         for i in range(len(unexplored[0])):
             x = unexplored[1][i]
             y = unexplored[0][i]
