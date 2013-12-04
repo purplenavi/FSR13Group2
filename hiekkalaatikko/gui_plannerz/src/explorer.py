@@ -526,7 +526,10 @@ class Explorer:
     
     def explore(self):
                 
-        self.calculate_weightmap()
+        tst = self.calculate_weightmap()
+        if tst is None:
+            # All done, can exit
+            return None
         cont = True
         
         if self.firstcall:

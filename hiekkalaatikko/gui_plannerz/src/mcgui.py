@@ -376,7 +376,6 @@ class TaskPlanner():
         self.explorer = Explorer()
         rospy.sleep(1.0)
         self.home = [0.0, 0.0]
-        self.exit = False
         #self.explorer_update.connect(self.explorer_cb_update)
         #self.manip_update.connect(self.manip_cb_update)
         self.openManipulator() # To ensure it's all the way opened
@@ -390,18 +389,16 @@ class TaskPlanner():
             #    print 'yay'
             #self.explorer_pub.publish('Gimme sum coordinates, mate')
             #self.parent.update_textbox('Explorer', 'Asking next coordinates')
-            (x,y,a,cont) = self.explorer.explore()
-            self.goToPoint(x,y,math.radians(a))
+            exp_point = self.explorer.explore()
+            self.cont = exp_point[3]
+            self.goToPoint(exp_point[0],exp_point[1],math.radians(exp_point[2]))
             self.state = -1
             self.parent.waiting = True
             # Trying with just one movement, reassigned when action movement succeeded (done_callback or feedback)
             #self.explorer_pub.unregister()
-            self.exit = False
         else:
             print 'executing task'
             while True:
-                if self.exit:
-                    break
                 if not self.parent.waiting:
                     if self.state == 0:
                         if len(self.parent.pirates) > 0 and not self.cont:
@@ -428,18 +425,20 @@ class TaskPlanner():
                         rospy.sleep(2.0)
                         if not self.parent.pirates:
                             print 'No more pirates lol'
-                            self.exit = True
+                            self.state = -1
                     elif self.state == -1:
                         print 'exploring state'
-                        (x,y,a,cont) = self.explorer.explore()
-                        self.cont = cont
-                        self.goToPoint(x,y,math.radians(a))
+                        exp_point = self.explorer.explore()
+                        if len(self.parent.pirates) == 0 and not self.cont and exp_point is None:
+                            # Whole maps explored and no known pirates exist
+                            print 'Explorer told everything is done'
+                            break
+                        self.cont = exp_point[3]
+                        self.goToPoint(exp_point[0],exp_point[1],math.radians(exp_point[2]))
                         self.parent.waiting = True
                     else:
                         print 'Somewhy we are at unknown state.. going back to 0'
-                        self.state = -1
-                else:
-                    pass
+                        self.state = 0
 
     def explorer_callback(self,data):
         #self.explorer_update.emit()
