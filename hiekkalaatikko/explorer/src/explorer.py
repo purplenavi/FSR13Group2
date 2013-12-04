@@ -23,6 +23,9 @@ class Explorer:
 
     # Actual initialization happens at first laser callback where the current pose, map size and resolution are defined.
     def __init__(self):
+        self.resolution = 0.04
+        self.width = 100
+        self.height = 50
         self.angle = 55 # angle in where camera can detect pirates ni degrees
         self.min_distance = 0.2 # minimum distance where camera can detect pirates in meters
         self.max_distance = 1.5 # maximum distance where camera can detect pirates in meters
@@ -33,6 +36,7 @@ class Explorer:
         self.view_xcount = 5
         self.view_ycount = 2
         self.weightLimit = 1500
+        self.weighting_distance = 2.0 # Radius in meters
         self.directions = [(0, 0), (0, 1), (1, 0), (0, -1), (-1, 0)]
         self.poselist = []
         self.poseindex = 0
@@ -519,7 +523,7 @@ class Explorer:
         self.goal_pub.publish(next_pose)
     
     def explore(self):
-                
+        
         self.calculate_weightmap()
         cont = True
         
@@ -530,8 +534,9 @@ class Explorer:
             self.firstcall = False
         
         if len(self.poselist) == 0:
+            print "New pose list"
             pose = self.get_next_pose()
-            poseList = self.get_pose_list(pose)
+            self.poselist = self.get_pose_list(pose)
             self.poseindex = 0
         
         # Iterate through poses
@@ -543,15 +548,15 @@ class Explorer:
         self.poseindex = self.poseindex + 1
         
         
-        if poseindex >= len(self.poselist):
+        if self.poseindex >= len(self.poselist):
             self.poselist = []
+            self.poseindex = 0
             cont = False
         
         #self.detector_callback()
         
         # Return next pose and wish to take more images
         return (p[0], p[1], p[2], cont)
-        
         
         
         
