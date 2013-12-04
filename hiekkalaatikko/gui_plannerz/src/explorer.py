@@ -37,6 +37,8 @@ class Explorer:
         self.poselist = []
         self.poseindex = 0
         self.firstcall = True
+        self.pos_x = None
+        self.pos_y = None
         # Subscribers to deal with incoming data
         #self.map_subscriber = rospy.Subscriber('/map', OccupancyGrid, self.laser_callback)
         #self.camera_subscriber = rospy.Subscriber('/camera/rgb/image_mono', Image, self.detector_callback)

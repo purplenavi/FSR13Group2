@@ -433,10 +433,10 @@ class TaskPlanner():
                         print 'exploring state'
                         (x,y,a,cont) = self.explorer.explore()
                         self.cont = cont
-                        self.goToLocation(x,y,math.radians(a))
+                        self.goToPoint(x,y,math.radians(a))
                         self.parent.waiting = True
                     else:
-                        print 'Something went terribly wrong???!'
+                        print 'Somewhy we are at unknown state.. going back to 0'
                         self.state = -1
                 else:
                     pass
@@ -464,9 +464,10 @@ class TaskPlanner():
         self.parent.update_textbox('Manipulator subscription',msg)
         
     def goToLocation(self,x,y,angle=None):
+        print 'Going to location ('+str(x)+', '+str(y)+')'
         location = PoseStamped()
         if angle is None:
-            quaternion = quaternion_from_euler(0, 0, math.atan2(y-self.parent.robomap.origin[1], x-self.parent.robomap.origin[0]))
+            quaternion = quaternion_from_euler(0, 0, math.atan2(y-self.explorer.pos_y, x-self.explorer.pos_x]))
         else:
             quaternion = quaternion_from_euler(0, 0, angle)
         location.header.frame_id = 'map'
@@ -480,8 +481,9 @@ class TaskPlanner():
         self.parent.actionclient.send_goal(location, feedback_cb=self.parent.feedback)
 
     def goToPoint(self,x,y,angle=None):
-        x_base = x * self.explorer.resolution - self.explorer.pose.position.x
-        y_base = y * self.explorer.resolution - self.explorer.pose.position.y
+        print 'Explorer point ('+str(x)+', '+str(y)+') gotten'
+        x_base = x * self.explorer.resolution - self.explorer.pos_x
+        y_base = y * self.explorer.resolution - self.explorer.pos_y
         self.goToLocation(x_base,y_base,angle)
 
     def grab_figure(self):
