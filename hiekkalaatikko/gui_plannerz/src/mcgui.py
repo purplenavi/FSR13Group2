@@ -480,8 +480,8 @@ class TaskPlanner():
         self.parent.actionclient.send_goal(location, feedback_cb=self.parent.feedback)
 
     def goToPoint(self,x,y,angle=None):
-        x_base = x * self.explorer.resolution + self.explorer.pose.position.x
-        y_base = y * self.explorer.resolution + self.explorer.pose.position.y
+        x_base = x * self.explorer.resolution - self.explorer.pose.position.x
+        y_base = y * self.explorer.resolution - self.explorer.pose.position.y
         self.goToLocation(x_base,y_base,angle)
 
     def grab_figure(self):
