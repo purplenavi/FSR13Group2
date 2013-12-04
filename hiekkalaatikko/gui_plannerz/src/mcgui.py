@@ -26,8 +26,8 @@ from explorer import Explorer
 goal_states={0:'PENDING',1:'ACTIVE',2:'PREEMPTED',3:'SUCCEEDED',4:'ABORTED',5:'REJECTED',6:'PREEMPTING',7:'RECALLING',8:'RECALLED',9:'LOST'}
 
 class Widgetti(QWidget):
-	dead_update = Signal()
-	pose_update = Signal()
+    dead_update = Signal()
+    pose_update = Signal()
     def __init__(self):
         super(Widgetti, self).__init__()
         self.layout = QVBoxLayout()
@@ -38,8 +38,8 @@ class Widgetti(QWidget):
         self.text_layout = QHBoxLayout()
         self.tf = tf.TransformListener()
 
-		self.dead_update.connect(self.update_dead)
-		self.pose_update.connect(self.update_pose_in_map)
+        self.dead_update.connect(self.update_dead)
+        self.pose_update.connect(self.update_pose_in_map)
         self.pirates = []
         self.dead_pirates = []
         self.dead_pirate_objects = []
@@ -57,10 +57,9 @@ class Widgetti(QWidget):
         #self.notificationPub = rospy.Publisher('notification', RideNotification)
         self.actionclient.wait_for_server()
         self.debug_stream = QTextEdit(self)
-        
+
+        self.taskplanner = TaskPlanner(parent = self)        
         self.robomap = RoboMap(tf = self.tf, parent=self)
-        rospy.sleep(1.0)
-        self.taskplanner = TaskPlanner(parent = self)
         
         self.left = QPushButton('Spin left')
         self.left.clicked.connect(self.spin_left)
@@ -172,21 +171,21 @@ class Widgetti(QWidget):
             for z in data.poses:
                 self.pirates.append(z)
             self.pirate_update = False
-        # Explorer callback
-        self.taskplanner.explorer.detector_callback('lol')
+            # Explorer callback
+            self.taskplanner.explorer.detector_callback(data)
     
     def dead_pirate_callback(self, data):
         if self.dead_pirate_update:
             for z in data.poses:
                 self.dead_pirates.append(z)
             self.dead_pirate_update = False
-			dead_update.emit()
-			
-	def update_dead(self):
+            dead_update.emit()
+            
+    def update_dead(self):
         if self.dead_pirate_objects:
-			self.clear_dead()
-		self.robomap.update_map(self.dead_pirates)
-		self.update_textbox('DEAD FOUND IN TOTAL: ', str(len(self.dead_pirates)))
+            self.clear_dead()
+        self.robomap.update_map(self.dead_pirates)
+        self.update_textbox('DEAD FOUND IN TOTAL: ', str(len(self.dead_pirates)))
         
     def clear_dead(self):
         for z in self.dead_pirate_objects:
@@ -238,6 +237,9 @@ class Widgetti(QWidget):
             # this check cancels the goal if the robot is "close enough"
             # move_base will endlessly spin sometimes without this code
             self.actionclient.cancel_goal()
+            if self.taskplanner.state == -1:
+                self.pirate_update = True
+                self.dead_pirate_update = True
             rospy.sleep(1.0)
             self.goal = None
             print 'Moving to next state from ' + str(self.taskplanner.state)
@@ -318,7 +320,7 @@ class RoboMap(QGraphicsView):
         self.setSceneRect(0, 0, self.w, self.h)
         self.map_change.emit()
         # Explorer laser callback
-        self.parent.task_planner.explorer.laser_callback(msg)
+        self.parent.taskplanner.explorer.laser_callback(msg)
 
     def update_map(self, dead_pirates):
         tmp = []
@@ -360,8 +362,8 @@ class RoboMap(QGraphicsView):
         
 class TaskPlanner():
 
-	explorer_update = Signal()
-	manip_update = Signal()
+    #explorer_update = Signal()
+    #manip_update = Signal()
     def __init__(self, manip_topic = '/manip_servo_angles', driver_topic = 'RosAria/cmd_vel', parent = None):
         self.state = 0
         self.move_goal = None
@@ -375,9 +377,10 @@ class TaskPlanner():
         rospy.sleep(1.0)
         self.home = [0.0, 0.0]
         self.exit = False
-		self.explorer_update.connect(self.explorer_cb_update)
-        self.manip_update.connect(self.manip_cb_update)
+        #self.explorer_update.connect(self.explorer_cb_update)
+        #self.manip_update.connect(self.manip_cb_update)
         self.openManipulator() # To ensure it's all the way opened
+        self.cont = False
 
     def execute(self):
         if not self.parent.pirates:
@@ -386,7 +389,7 @@ class TaskPlanner():
             #if tmp:
             #    print 'yay'
             #self.explorer_pub.publish('Gimme sum coordinates, mate')
-            self.parent.update_textbox('Explorer', 'Asking next coordinates')
+            #self.parent.update_textbox('Explorer', 'Asking next coordinates')
             (x,y,a,cont) = self.explorer.explore()
             self.goToLocation(x,y,math.radians(a))
             self.state = -1
@@ -401,9 +404,13 @@ class TaskPlanner():
                     break
                 if not self.parent.waiting:
                     if self.state == 0:
-                        print 'Moving to pirate for first time'
-                        self.move_to_pirate()
-                        self.parent.waiting = True
+                        if len(self.parent.pirates) > 0 and not self.cont:
+                            print 'Moving to pirate for first time'
+                            self.move_to_pirate()
+                            self.parent.waiting = True
+                        else:
+                            print 'No pirates or explorer wants to look around, changing to exploring state'
+                            self.state = -1
                         
                     elif self.state == 1:
                         print 'closing'
@@ -424,7 +431,10 @@ class TaskPlanner():
                             self.exit = True
                     elif self.state == -1:
                         print 'exploring state'
-                        # Do something
+                        (x,y,a,cont) = self.explorer.explore()
+                        self.cont = cont
+                        self.goToLocation(x,y,math.radians(a))
+                        self.parent.waiting = True
                     else:
                         print 'Something went terribly wrong???!'
                         self.state = -1
@@ -432,11 +442,11 @@ class TaskPlanner():
                     pass
 
     def explorer_callback(self,data):
-		self.explorer_update.emit()
+        #self.explorer_update.emit()
         print data
         self.goToLocation(data.pose.position.x,data.pose.position.y)
-		
-	def explorer_cb_update(self):
+        
+    def explorer_cb_update(self):
         self.parent.update_textbox('Next coordinates from explorer', '('+str(data.pose.position.x)+','+str(data.pose.position.y)+')')
 
     def move_to_pirate(self):
@@ -447,9 +457,10 @@ class TaskPlanner():
         self.parent.actionclient.send_goal(self.move_goal, feedback_cb=self.parent.feedback)
 
     def manipulatorCb(self, msg):
-		self.manip_update.emit()
-		
-	def manip_cb_update(self):
+        print 'Manipulator cb'
+        #self.manip_update.emit()
+        
+    def manip_cb_update(self):
         self.parent.update_textbox('Manipulator subscription',msg)
         
     def goToLocation(self,x,y,angle=None):
