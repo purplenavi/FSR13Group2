@@ -134,8 +134,6 @@ class pirate_detector:
         
     def publish_dead(self, dead):
         self.dead_pirate_publisher.publish(dead)
-        cloud.header.frame_id = '/base_link'
-        self.pcpub.publish(cloud)
 		
     def get_floor_height(self, z_array):
         #This would be a TOTALLY USELESS METHOD if the servos would work correctly in the camera
@@ -173,7 +171,7 @@ class pirate_detector:
                         collisions['z'][y][x] = 0
                 else:
                     collisions['z'][y][x] = 0
-        self.publish_dead(collisions)
+        self.publish_collisions_cloud(collisions)
         path1 = Path()
         camerapoint = PoseStamped()
         for d in dead:
@@ -188,7 +186,9 @@ class pirate_detector:
         return path1
         
     def publish_collisions_cloud(self, cloud_array):
-        cloud = array_to_pointcloud2(tmp)
+        cloud = array_to_pointcloud2(cloud_array)
+        cloud.header.frame_id = '/base_link'
+        self.pcpub.publish(cloud)
 
     def look_for_pirates(self, pointcloud_array, offset=0.02):
         tmp = pointcloud_array
