@@ -231,16 +231,10 @@ class Explorer:
         
 
     def calculate_weightmap(self):
-<<<<<<< HEAD
-
-=======
         if self.map is None or self.pose is None or self.resolution is None:
             print 'Cannot get next point, Explorer not initialized yet'
             return
-        time_start = rospy.get_time()
-        # There's no reason for me to do anything with the msg, wadap...
-        #print 'Wow! I just got a message from task planner: '+str(msg)
->>>>>>> Explorer update
+
         unexplored = np.where(self.map == 0) # Giving the indexes of map containing the zeros
         if len(unexplored) == 0:
             print 'Whole map is already checked out so the exploring is done!';

@@ -391,7 +391,7 @@ class TaskPlanner():
             #self.explorer_pub.publish('Gimme sum coordinates, mate')
             #self.parent.update_textbox('Explorer', 'Asking next coordinates')
             (x,y,a,cont) = self.explorer.explore()
-            self.goToLocation(x,y,math.radians(a))
+            self.goToPoint(x,y,math.radians(a))
             self.state = -1
             self.parent.waiting = True
             # Trying with just one movement, reassigned when action movement succeeded (done_callback or feedback)
@@ -478,7 +478,12 @@ class TaskPlanner():
         location = MoveBaseGoal(target_pose=location)
         self.move_goal = location
         self.parent.actionclient.send_goal(location, feedback_cb=self.parent.feedback)
-        
+
+    def goToPoint(self,x,y,angle=None):
+        x_base = x * self.explorer.resolution + self.explorer.pose.position.x
+        y_base = y * self.explorer.resolution + self.explorer.pose.position.y
+        self.goToLocation(x_base,y_base,angle)
+
     def grab_figure(self):
         self.closeManipulator()
         # Closing
