@@ -124,6 +124,57 @@ class Explorer:
                 if e2 < dx:
                     err = err + dx
                     y0 = y0 + sy 
+                    
+        # Mark interest points
+        anglechange = self.angle / (self.view_xcount + 1)
+        range = 0.8 * self.max_distance
+    
+        for i in xrange(1, self.view_xcount + 1):
+            targetangle = math.radians(beamangle + (anglechange * i))
+            xp = range * math.cos(targetangle)
+            yp = range * math.sin(targetangle)
+            
+            xp = robotx + math.floor(xp / self.resolution)
+            yp = roboty + math.floor(yp / self.resolution)
+            
+            print "Interest point in %d, %d, angle %.1f" % (xp, i, targetangle)
+            
+            if not self.markViewPoint(xp, yp):
+                print "failed"
+                
+                    
+    def markViewPoint(self, x, y):
+        for i in xrange(0, 4):
+            point = self.directions[i]
+            xp = x + point[0]
+            yp = y + point[1]
+            if self.vp(xp, yp):
+                return True
+        
+        return False
+
+    def vp(self, x, y):
+        if x < 0 or y < 0 or x >= self.width or y >= self.height:
+            return False
+
+        if self.map[y][x] > 0 and self.map[y][x] < 4:
+            self.map[y][x] = 2
+            self.viewpoints.append((x, y, 0))
+            return True
+        return False
+    
+    def reorder_interestpoints(self):
+        for i in xrange(len(self.viewpoints)):
+            # Count distance to current position
+            x = self.viewpoints[i][0]
+            y = self.viewpoints[i][1]
+            
+            dist = math.sqrt(math.pow(self.pos_x - x,2) + math.pow(self.pos_y - y,2))
+            self.viewpoints[i] = (x, y, dist)
+            
+        self.viewpoints = sorted(self.viewpoints, key=lambda point: point[2])
+    
+
 
     def plot(self, x, y, end=False):
         
@@ -357,31 +408,48 @@ class Explorer:
     def get_next_pose(self):
     
         # Get a random point from searched area
-        # Pose is a tuple of type (x, y, direction)
-        # Direction is in radians
         p = (-1, -1, 0)
 
         value = 0
-    
-        cont = False
-
-        while not cont: #p[0] < 0 and (value <= 0 or value > 6):
-            print 'Still in cont'
-            (x,y) = self.get_next_point()
+        
+        self.reorder_interestpoints()
+        
+        # First get closest interestpoints
+        for point in list(self.viewpoints):
+            x = point[0]
+            y = point[1]
+        
+            print "Interestpoint %d, %d (%.2f)" % (x, y, point[2])
             
-            if x == -1:
-                (x,y) = self.get_next_point(algo=2)
-            print 'Next point coordinates: X:' + str(x) + ' Y:' +str(y)
             value = self.map[y][x]
-            print 'Value ' + str(value)
+        
             if value <= 0 or value > 6:
                 continue
         
-            direction = self.direction_from_point(x, y)
-            print direction
+            dir = self.direction_from_point(x, y)
+        
             # Check for weight map usability
-            if direction[1] > self.weightLimit:
-                p = (x, y, direction[0])
+            if dir[1] > self.weightLimit:
+                p = (x, y, dir[0])
+                self.viewpoints.remove(point)
+                return p
+
+        cont = False
+        
+        while not cont: #p[0] < 0 and (value <= 0 or value > 6):
+            x = random.randrange(len(self.map[0]))
+            y = random.randrange(len(self.map))
+        
+            value = self.map[y][x]
+        
+            if value <= 0 or value > 6:
+                continue
+        
+            dir = self.direction_from_point(x, y)
+        
+            # Check for weight map usability
+            if dir[1] > self.weightLimit:
+                p = (x, y, dir[0])
                 cont = True
                 #print "Weight: %d" % dir[1]
 
