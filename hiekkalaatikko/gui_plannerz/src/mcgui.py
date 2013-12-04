@@ -26,7 +26,8 @@ from explorer import Explorer
 goal_states={0:'PENDING',1:'ACTIVE',2:'PREEMPTED',3:'SUCCEEDED',4:'ABORTED',5:'REJECTED',6:'PREEMPTING',7:'RECALLING',8:'RECALLED',9:'LOST'}
 
 class Widgetti(QWidget):
-
+	dead_update = Signal()
+	pose_update = Signal()
     def __init__(self):
         super(Widgetti, self).__init__()
         self.layout = QVBoxLayout()
@@ -37,6 +38,8 @@ class Widgetti(QWidget):
         self.text_layout = QHBoxLayout()
         self.tf = tf.TransformListener()
 
+		self.dead_update.connect(self.update_dead)
+		self.pose_update.connect(self.update_pose_in_map)
         self.pirates = []
         self.dead_pirates = []
         self.dead_pirate_objects = []
@@ -161,7 +164,7 @@ class Widgetti(QWidget):
             self.point_goal = None
         if self.timer > 500:
             self.actionclient.cancel_goal()
-            self.update_textbox('Could not reach target: ', 'Timeout')
+            #self.update_textbox('Could not reach target: ', 'Timeout')
         self.pose_update_timer += 1
         
     def pirate_callback(self, data):
@@ -176,10 +179,14 @@ class Widgetti(QWidget):
         if self.dead_pirate_update:
             for z in data.poses:
                 self.dead_pirates.append(z)
-            if self.dead_pirate_objects:
-                self.clear_dead()
             self.dead_pirate_update = False
-            self.robomap.update_map(self.dead_pirates)
+			dead_update.emit()
+			
+	def update_dead(self):
+        if self.dead_pirate_objects:
+			self.clear_dead()
+		self.robomap.update_map(self.dead_pirates)
+		self.update_textbox('DEAD FOUND IN TOTAL: ', str(len(self.dead_pirates)))
         
     def clear_dead(self):
         for z in self.dead_pirate_objects:
@@ -223,7 +230,7 @@ class Widgetti(QWidget):
         self.timer += 1
         if self.pose_update_timer > 20:
             print 'omg'
-            self.update_pose_in_map()
+            self.pose_update.emit()
             self.pose_update_timer = 0
         if self.taskplanner.move_goal and self.distance(self.taskplanner.move_goal, pose_stamp) < 0.2:
             self.timer = 0
@@ -254,31 +261,6 @@ class Widgetti(QWidget):
         for dimension in ('x', 'y'):
             out += math.pow(getattr(t1.target_pose.pose.position, dimension) - getattr(t2.pose.position, dimension), 2)
         return math.sqrt(out)
-
-    def Engage(self):
-        plan = self.robomap.get_plan()
-        if not plan:
-            QMessageBox.critical(self, "No plan or map :(", "OK")
-            return
-
-        path = Path()
-        path.header.frame_id = "map"
-        path.header.stamp = rospy.Time.now()
-        for z in plan:
-            stamp = PoseStamped()
-            pos = z[0]
-            x = pos[0]
-            y = pos[1]
-            quaternion = z[1]
-            stamp.header.stamp = rospy.Time.now()
-            stamp.header.frame_id = "map"
-            stamp.pose.position.x = x
-            stamp.pose.position.y = y
-            stamp.pose.orientation.w = quaternion[3]
-            stamp.pose.orientation.z = quaternion[2]
-            path.poses.append(stamp)
-            self.update_textbox('path coordinate_point:', (str(x) + ' ' + str(y)))
-        self.gui_publisher.publish(path)
 
         
 class RoboMap(QGraphicsView):
@@ -338,26 +320,6 @@ class RoboMap(QGraphicsView):
         # Explorer laser callback
         self.parent.task_planner.explorer.laser_callback(msg)
 
-    def get_plan(self):
-        if self.polygon and self.resolution:
-            porygon = self.polygon.polygon()
-            point_list = []
-            for z in range(porygon.size()):
-                x = (((self.w/2) - porygon[z].x()) + (self.w/2)) * self.resolution + self.origin[0]
-                if z < porygon.size()-1:
-                    nxt = porygon[z+1]
-                else: #meaning last point
-                    nxt = porygon[0]
-                nxt_x = (((self.w/2) - nxt.x()) + (self.w/2)) * self.resolution + self.origin[0]
-                y = porygon[z].y() * self.resolution + self.origin[1]
-                nxt_y = nxt.y() * self.resolution + self.origin[1]
-                angle = math.atan2(nxt_y - y, nxt_x - x)
-                quaternion = quaternion_from_euler(0, 0, angle)
-                point_list.append(((x, y), quaternion))
-            return point_list
-        else:
-            return None
-            
     def update_map(self, dead_pirates):
         tmp = []
         for z in dead_pirates:
@@ -398,7 +360,8 @@ class RoboMap(QGraphicsView):
         
 class TaskPlanner():
 
-
+	explorer_update = Signal()
+	manip_update = Signal()
     def __init__(self, manip_topic = '/manip_servo_angles', driver_topic = 'RosAria/cmd_vel', parent = None):
         self.state = 0
         self.move_goal = None
@@ -412,7 +375,8 @@ class TaskPlanner():
         rospy.sleep(1.0)
         self.home = [0.0, 0.0]
         self.exit = False
-        
+		self.explorer_update.connect(self.explorer_cb_update)
+        self.manip_update.connect(self.manip_cb_update)
         self.openManipulator() # To ensure it's all the way opened
 
     def execute(self):
@@ -436,7 +400,6 @@ class TaskPlanner():
                 if self.exit:
                     break
                 if not self.parent.waiting:
-                    self.parent.update_textbox('Current state',str(self.state))
                     if self.state == 0:
                         print 'Moving to pirate for first time'
                         self.move_to_pirate()
@@ -469,9 +432,12 @@ class TaskPlanner():
                     pass
 
     def explorer_callback(self,data):
-        self.parent.update_textbox('Next coordinates from explorer', '('+str(data.pose.position.x)+','+str(data.pose.position.y)+')')
+		self.explorer_update.emit()
         print data
         self.goToLocation(data.pose.position.x,data.pose.position.y)
+		
+	def explorer_cb_update(self):
+        self.parent.update_textbox('Next coordinates from explorer', '('+str(data.pose.position.x)+','+str(data.pose.position.y)+')')
 
     def move_to_pirate(self):
         self.parent.actionclient.cancel_all_goals()
@@ -481,6 +447,9 @@ class TaskPlanner():
         self.parent.actionclient.send_goal(self.move_goal, feedback_cb=self.parent.feedback)
 
     def manipulatorCb(self, msg):
+		self.manip_update.emit()
+		
+	def manip_cb_update(self):
         self.parent.update_textbox('Manipulator subscription',msg)
         
     def goToLocation(self,x,y,angle=None):
