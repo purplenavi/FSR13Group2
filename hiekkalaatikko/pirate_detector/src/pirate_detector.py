@@ -137,18 +137,27 @@ class pirate_detector:
         
     def publish_dead(self, dead):
         self.dead_pirate_publisher.publish(dead)
+		
+    def get_floor_height(self, z_array):
+        #This would be a TOTALLY USELESS METHOD if the servos would work correctly in the camera
+        floor = 100
+        for i in range(len(z_array)):
+            if z_array[i] < floor:
+                floor = z_array[i]
+        return floor
         
     def look_for_dead_pirates(self, pointcloud_array, offset=0.02):
         tmp = pointcloud_array
         #Look for something like 1x1 objects from the cloud like 1-2 cm above the floor (floor currently at ~-0.69)
         dead = []
         for y in range(len(tmp['x'])):
+            floor = self.get_floor_height(tmp['z'][y]) #Lets get the lowest point in the array, that's got to be floor as there's no holes in the ground...
             for x in range(len(tmp['x'][0])):
-                if tmp['z'][y][x] > -0.68 and tmp['z'][y][x] < -0.665 and tmp['x'][y][x] < 1.8:
-                    if x > 2:
-                        y1 = abs(tmp['y'][y][x])
-                        y2 = abs(tmp['y'][y][x + 2])
-                        if abs(y1 - y2) > offset:
+                if y > 2:
+                    if (tmp['z'][y][x] + 0.005) > floor:
+                        x1 = abs(tmp['x'][y][x])
+                        x2 = abs(tmp['x'][y + 2][x])
+                        if abs(x1 - x2) > offset:
                             accept = True
                             point = [tmp['x'][y][x], tmp['y'][y][x], tmp['z'][y][x]]
                             for d in dead:
