@@ -21,6 +21,7 @@ from move_base_msgs.msg import MoveBaseAction, MoveBaseGoal
 import actionlib
 from actionlib_msgs.msg import GoalStatus
 import sys
+from explorer import Explorer
 
 goal_states={0:'PENDING',1:'ACTIVE',2:'PREEMPTED',3:'SUCCEEDED',4:'ABORTED',5:'REJECTED',6:'PREEMPTING',7:'RECALLING',8:'RECALLED',9:'LOST'}
 
@@ -168,6 +169,8 @@ class Widgetti(QWidget):
             for z in data.poses:
                 self.pirates.append(z)
             self.pirate_update = False
+        # Explorer callback
+        self.taskplanner.explorer.detector_callback('lol')
     
     def dead_pirate_callback(self, data):
         if self.dead_pirate_update:
@@ -233,7 +236,7 @@ class Widgetti(QWidget):
             print 'Moving to next state from ' + str(self.taskplanner.state)
             self.taskplanner.state = self.taskplanner.state + 1
             self.waiting = False
-            self.taskplanner.explorer_pub = rospy.Publisher('explore_next_point', String, latch=False)
+            #self.taskplanner.explorer_pub = rospy.Publisher('explore_next_point', String, latch=False)
         if self.timer > 500:
             print 'wtf?'
             self.actionclient.cancel_goal()
@@ -332,6 +335,8 @@ class RoboMap(QGraphicsView):
         self.map = img
         self.setSceneRect(0, 0, self.w, self.h)
         self.map_change.emit()
+        # Explorer laser callback
+        self.parent.task_planner.explorer.laser_callback(msg)
 
     def get_plan(self):
         if self.polygon and self.resolution:
@@ -401,8 +406,9 @@ class TaskPlanner():
         self.manipulator = manip_topic
         self.manipulator_action = rospy.Publisher(self.manipulator, Vector3, latch=False)
         self.driver = rospy.Publisher(driver_topic, Twist, latch=False)
-        self.explorer_sub = rospy.Subscriber('/explore_point', PoseStamped, self.explorer_callback)
-        self.explorer_pub = rospy.Publisher('explore_next_point', String, latch=False)
+        #self.explorer_sub = rospy.Subscriber('/explore_point', PoseStamped, self.explorer_callback)
+        #self.explorer_pub = rospy.Publisher('explore_next_point', String, latch=False)
+        self.explorer = Explorer()
         rospy.sleep(1.0)
         self.home = [0.0, 0.0]
         self.exit = False
@@ -412,13 +418,17 @@ class TaskPlanner():
     def execute(self):
         if not self.parent.pirates:
             print 'NO PIRATES ASSHOLE!'
-            tmp = self.parent.get_data_from_camera()
-            if tmp:
-                print 'yay'
-            self.explorer_pub.publish('Gimme sum coordinates, mate')
+            #tmp = self.parent.get_data_from_camera()
+            #if tmp:
+            #    print 'yay'
+            #self.explorer_pub.publish('Gimme sum coordinates, mate')
             self.parent.update_textbox('Explorer', 'Asking next coordinates')
+            (x,y,a,cont) = self.explorer.explore()
+            self.goToLocation(x,y,math.radians(a))
+            self.state = -1
+            self.parent.waiting = True
             # Trying with just one movement, reassigned when action movement succeeded (done_callback or feedback)
-            self.explorer_pub.unregister()
+            #self.explorer_pub.unregister()
             self.exit = False
         else:
             print 'executing task'
@@ -449,10 +459,12 @@ class TaskPlanner():
                         if not self.parent.pirates:
                             print 'No more pirates lol'
                             self.exit = True
-                    
-                    elif self.state == 4:
+                    elif self.state == -1:
+                        print 'exploring state'
+                        # Do something
+                    else:
                         print 'Something went terribly wrong???!'
-                        self.state = 0
+                        self.state = -1
                 else:
                     pass
 
@@ -471,9 +483,12 @@ class TaskPlanner():
     def manipulatorCb(self, msg):
         self.parent.update_textbox('Manipulator subscription',msg)
         
-    def goToLocation(self,x,y):
+    def goToLocation(self,x,y,angle=None):
         location = PoseStamped()
-        quaternion = quaternion_from_euler(0, 0, math.atan2(y-self.parent.robomap.origin[1], x-self.parent.robomap.origin[0]))
+        if angle is None:
+            quaternion = quaternion_from_euler(0, 0, math.atan2(y-self.parent.robomap.origin[1], x-self.parent.robomap.origin[0]))
+        else:
+            quaternion = quaternion_from_euler(0, 0, angle)
         location.header.frame_id = 'map'
         location.header.stamp = rospy.Time.now()
         location.pose.position.x = x
