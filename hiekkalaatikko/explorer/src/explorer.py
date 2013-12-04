@@ -88,8 +88,11 @@ class Explorer:
             targetangle = math.radians(beamangle + a * step)
 
             # Mark both ends of line
-            x0 = robotx + self.min_distance * self.resolution * math.cos(targetangle)
-            y0 = roboty + self.min_distance * self.resolution * math.sin(targetangle)
+            x0 = robotx
+            y0 = roboty
+            
+            xm = robotx + self.min_distance * self.resolution * math.cos(targetangle)
+            ym = roboty + self.min_distance * self.resolution * math.sin(targetangle)
 
             x1 = robotx + self.max_distance * self.resolution * math.cos(targetangle)
             y1 = roboty + self.max_distance * self.resolution * math.sin(targetangle)
@@ -220,7 +223,7 @@ class Explorer:
         if self.map[y][x] == 0:
             self.map[y][x] = 1
         return True
-
+        
 
     def calculate_weightmap(self, msg):
         if self.map is None or self.pose is None or self.resolution is None:
