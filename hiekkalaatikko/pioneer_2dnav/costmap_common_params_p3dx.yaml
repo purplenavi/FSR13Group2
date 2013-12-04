@@ -27,4 +27,4 @@ observation_sources: laser_scan_sensor point_cloud_sensor
 
 laser_scan_sensor: {sensor_frame: laser, data_type: LaserScan, topic: scan, marking: true, clearing: true, expected_update_rate: 0.2}
 
-point_cloud_sensor: {sensor_frame: base_link, data_type: PointCloud2, topic: collision_object, marking: true, clearing: true, max_obstacle_height: 0.02}
+point_cloud_sensor: {sensor_frame: base_link, data_type: PointCloud2, topic: vmp, marking: true, clearing: true, max_obstacle_height: 0.02}
