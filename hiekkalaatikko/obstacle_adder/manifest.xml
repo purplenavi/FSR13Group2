@@ -1,0 +1,17 @@
+<package>
+  <description brief="obstacle_adder">
+
+     obstacle_adder
+
+  </description>
+  <author>group2</author>
+  <license>BSD</license>
+  <review status="unreviewed" notes=""/>
+  <url>http://ros.org/wiki/obstacle_adder</url>
+  <depend package="roscpp"/>
+  <depend package="nav_msgs"/>
+  <depend package="arm_navigation_msgs"/>
+
+</package>
+
+

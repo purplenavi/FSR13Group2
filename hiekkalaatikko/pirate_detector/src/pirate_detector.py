@@ -140,32 +140,23 @@ class pirate_detector:
         
     def look_for_dead_pirates(self, pointcloud_array, offset=0.02):
         tmp = pointcloud_array
-        #Look for something like 3x1 objects from the cloud like 1-2 cm above the floor (floor currently at ~-0.69)
+        #Look for something like 1x1 objects from the cloud like 1-2 cm above the floor (floor currently at ~-0.69)
         dead = []
         for y in range(len(tmp['x'])):
             for x in range(len(tmp['x'][0])):
-                if x < (len(tmp['x'][0]) - 9):
-                    i = 1
-                    j = 2
-                    k = 9
-                else:
-                    i = -1
-                    j = -2
-                    k = -9
                 if tmp['z'][y][x] > -0.68 and tmp['z'][y][x] < -0.665 and tmp['x'][y][x] < 1.8:
-                    y1 = abs(tmp['y'][y][x])
-                    y2 = abs(tmp['y'][y][x + i])
-                    y3 = abs(tmp['y'][y][x + j])
-                    y7 = abs(tmp['y'][y][x + k])
-                    if abs(y1 - y2) < offset and abs(y1 - y3) < offset and abs(y1 - y7) > offset:
-                        accept = True
-                        point = [tmp['x'][y][x], tmp['y'][y][x], tmp['z'][y][x]]
-                        for d in dead:
-                            accept = self.distance(d, point)
-                            if not accept:
-                                break
-                        if accept:
-                            dead.append(point)
+                    if x > 2:
+                        y1 = abs(tmp['y'][y][x])
+                        y2 = abs(tmp['y'][y][x + 2])
+                        if abs(y1 - y2) > offset:
+                            accept = True
+                            point = [tmp['x'][y][x], tmp['y'][y][x], tmp['z'][y][x]]
+                            for d in dead:
+                                accept = self.distance(d, point)
+                                if not accept:
+                                    break
+                            if accept:
+                                dead.append(point)
         path1 = Path()
         camerapoint = PoseStamped()
         for d in dead:
@@ -187,7 +178,7 @@ class pirate_detector:
         for y in range(len(tmp['x'])):
             if y > 7:
                 for x in range(len(tmp['x'][0])):
-                    if tmp['z'][y][x] > -0.65 and tmp['z'][y][x] < -0.6 and tmp['x'][y][x] < 1.8:
+                    if tmp['z'][y][x] > -0.68 and tmp['z'][y][x] < -0.65 and tmp['x'][y][x] < 1.8:
                         x1 = abs(tmp['x'][y][x])
                         x2 = abs(tmp['x'][y - 1][x])
                         x3 = abs(tmp['x'][y - 2][x])
@@ -200,7 +191,6 @@ class pirate_detector:
                                 if not accept:
                                     break
                             if accept:
-                                print z7
                                 pirates.append(point)
         path1 = Path()
         camerapoint = PoseStamped()
