@@ -29,8 +29,11 @@ class Explorer:
         self.resolution = None # resolution in m/cell
         self.map = None
         self.pose = None
-        self.ends = []
+        self.viewpoints = []
+        self.view_xcount = 5
+        self.view_ycount = 2
         self.weightLimit = 1500
+        self.directions = [(0, 0), (0, 1), (1, 0), (0, -1), (-1, 0)]
         # Subscribers to deal with incoming data
         self.map_subscriber = rospy.Subscriber('/map', OccupancyGrid, self.laser_callback)
         self.camera_subscriber = rospy.Subscriber('/camera/rgb/image_mono', Image, self.detector_callback)
