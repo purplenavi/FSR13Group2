@@ -69,9 +69,6 @@ class pirate_detector:
         print 'PCL callback gotten'
         tmp = pointcloud2_to_array(data)
         tmp = self.downsample_pointcloud(tmp)
-        cloud = array_to_pointcloud2(tmp)
-        cloud.header.frame_id = '/base_link'
-        self.pcpub.publish(cloud)
         pirates = self.look_for_pirates(tmp)
         dead = self.look_for_dead_pirates(tmp)
         self.publish_pirates(pirates)
@@ -137,6 +134,8 @@ class pirate_detector:
         
     def publish_dead(self, dead):
         self.dead_pirate_publisher.publish(dead)
+        cloud.header.frame_id = '/base_link'
+        self.pcpub.publish(cloud)
 		
     def get_floor_height(self, z_array):
         #This would be a TOTALLY USELESS METHOD if the servos would work correctly in the camera
@@ -148,6 +147,7 @@ class pirate_detector:
         
     def look_for_dead_pirates(self, pointcloud_array, offset=0.02):
         tmp = pointcloud_array
+        collisions = tmp
         #Look for something like 1x1 objects from the cloud like 1-2 cm above the floor (floor currently at ~-0.69)
         dead = []
         for y in range(len(tmp['x'])):
@@ -166,6 +166,14 @@ class pirate_detector:
                                     break
                             if accept:
                                 dead.append(point)
+                                collisions['z'][y][x] = 3
+                            else:
+                                collisions['z'][y][x] = 0
+                    else:
+                        collisions['z'][y][x] = 0
+                else:
+                    collisions['z'][y][x] = 0
+        self.publish_dead(collisions)
         path1 = Path()
         camerapoint = PoseStamped()
         for d in dead:
@@ -178,6 +186,9 @@ class pirate_detector:
             camerapoint.pose.orientation.z = quaternion[2]
             path1.poses.append(camerapoint)
         return path1
+        
+    def publish_collisions_cloud(self, cloud_array):
+        cloud = array_to_pointcloud2(tmp)
 
     def look_for_pirates(self, pointcloud_array, offset=0.02):
         tmp = pointcloud_array
