@@ -34,6 +34,9 @@ class Explorer:
         self.view_ycount = 2
         self.weightLimit = 1500
         self.directions = [(0, 0), (0, 1), (1, 0), (0, -1), (-1, 0)]
+        self.poselist = []
+        self.poseindex = 0
+        self.firstcall = True
         # Subscribers to deal with incoming data
         self.map_subscriber = rospy.Subscriber('/map', OccupancyGrid, self.laser_callback)
         self.camera_subscriber = rospy.Subscriber('/camera/rgb/image_mono', Image, self.detector_callback)
@@ -145,7 +148,21 @@ class Explorer:
             if not self.markViewPoint(xp, yp):
                 print "failed"
                 
-                    
+        # Final point in close
+        targetangle = math.radians(robotangle)
+        range = self.min_distance + 0.2 * (self.max_distance - self.min_distance)
+
+        xp = range * math.cos(targetangle)
+        yp = range * math.sin(targetangle)
+            
+        xp = robotx + math.floor(xp / self.resolution)
+        yp = roboty + math.floor(yp / self.resolution)
+        self.markViewPoint(xp, yp)
+        
+        # Draw map
+        self.drawTargetMap(self.map)
+
+
     def markViewPoint(self, x, y):
         for i in xrange(0, 4):
             point = self.directions[i]
@@ -437,9 +454,9 @@ class Explorer:
                 self.viewpoints.remove(point)
                 return p
 
-        cont = False
+        cont = 0
         
-        while not cont: #p[0] < 0 and (value <= 0 or value > 6):
+        while cont <= 500:
             x = random.randrange(len(self.map[0]))
             y = random.randrange(len(self.map))
         
@@ -451,12 +468,35 @@ class Explorer:
             dir = self.direction_from_point(x, y)
         
             # Check for weight map usability
-            if dir[1] > self.weightLimit:
+            if dir[1] > self.weightLimit or cont >= 500:
                 p = (x, y, dir[0])
-                cont = True
-                #print "Weight: %d" % dir[1]
+                return p
 
         return p
+        
+    def get_pose_list(self, pose):
+        x = pose[0]
+        y = pose[1]
+        angle = pose[2]
+        usableAngle = self.angle * self.angle_usability
+        
+        # Get all smart image angles taken from this position
+        count = (360) / (usableAngle)
+        
+        poses = []
+        
+        print "Position: (%d, %d)" % (x, y)
+        
+        poses.append(pose)
+        
+        for i in xrange(int(math.ceil(count))):
+            a = angle + i * usableAngle
+
+            poses.append((x, y, a))
+
+                
+        return poses
+
 
     def next_pose_callback(self,data):
         print 'Got called for next point with msg: '+str(data)
@@ -474,6 +514,45 @@ class Explorer:
         next_pose.pose.orientation.z = quaternion[2]
         print 'Next point to explore: ('+str(p[0])+', '+str(p[1])+') with orientation '+str(p[2])
         self.goal_pub.publish(next_pose)
+    
+    def explore(self):
+                
+        self.calculate_weightmap()
+        cont = True
+        
+        if self.firstcall:
+            pose = (self.pos_x, self.pos_y, self.angle)
+            self.poselist = self.get_pose_list(pose)
+            self.poseindex = 0
+            self.firstcall = False
+        
+        if len(self.poselist) == 0:
+            pose = self.get_next_pose()
+            poseList = self.get_pose_list(pose)
+            self.poseindex = 0
+        
+        # Iterate through poses
+        p = self.poselist[self.poseindex]
+        
+        #self.pos_x = p[0]
+        #self.pos_y = p[1]
+        #self.target_angle = math.degrees(p[2])
+        self.poseindex = self.poseindex + 1
+        
+        
+        if poseindex >= len(self.poselist):
+            self.poselist = []
+            cont = False
+        
+        #self.detector_callback()
+        
+        # Return next pose and wish to take more images
+        return (p[0], p[1], p[2], cont)
+        
+        
+        
+        
+            
 
 if __name__ == "__main__":
     rospy.init_node('explorer')
