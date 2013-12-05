@@ -25,7 +25,7 @@ class Explorer:
     def __init__(self):
         self.angle = 55 # angle in where camera can detect pirates ni degrees
         self.min_distance = 0.2 # minimum distance where camera can detect pirates in meters
-        self.max_distance = 1.5 # maximum distance where camera can detect pirates in meters
+        self.max_distance = 1.3 # maximum distance where camera can detect pirates in meters
         self.resolution = None # resolution in m/cell
         self.map = None
         self.pose = None
@@ -61,11 +61,15 @@ class Explorer:
             self.height = msg.info.height
             print 'Explorer initialized'
         # Convert values gotten from laser to int
-        reshaped_data = np.array(msg.data, dtype=int, copy=False, order='C')
+        tmp = msg
+        dat = tmp.data
+        tmp_h = tmp.info.height
+        tmp_w = tmp.info.width
+        reshaped_data = np.array(dat, dtype=int, copy=False, order='C')
         # Convert to binary 
         reshaped_data = np.array(reshaped_data > 50, dtype=int)
         # Reshape the match map size
-        reshaped_data = reshaped_data.reshape((msg.info.height, msg.info.width))
+        reshaped_data = reshaped_data.reshape((tmp_h, tmp_w))
         # Points to be cleared to make sure points contain value 7
         clearpoints = reshaped_data & np.array(self.map > 0, dtype=int)
         # Delete existing values from map in poins new laser data's going
@@ -170,7 +174,7 @@ class Explorer:
         self.markViewPoint(xp, yp)
         
         # Draw map
-        self.drawTargetMap(self.map)
+        #self.drawTargetMap(self.map)
 
 
     def markViewPoint(self, x, y):
@@ -238,9 +242,11 @@ class Explorer:
             return
 
         unexplored = np.where(self.map == 0) # Giving the indexes of map containing the zeros
+        """
         if len(unexplored) == 0:
             print 'Whole map is already checked out so the exploring is done!';
             return None
+        """
         
         self.weightmap = np.zeros((len(self.map),len(self.map[0])))
         
@@ -487,7 +493,9 @@ class Explorer:
         x = pose[0]
         y = pose[1]
         angle = pose[2]
-        usableAngle = self.angle * self.angle_usability
+        usableAngle = self.angle #* self.angle_usability
+        if usableAngle == 0:
+            usableAngle = 1
         
         # Get all smart image angles taken from this position
         count = (360) / (usableAngle)
@@ -526,10 +534,7 @@ class Explorer:
     
     def explore(self):
                 
-        tst = self.calculate_weightmap()
-        if tst is None:
-            # All done, can exit
-            return None
+        self.calculate_weightmap()
         cont = True
         
         if self.firstcall:
@@ -552,7 +557,7 @@ class Explorer:
         self.poseindex = self.poseindex + 1
         
         
-        if poseindex >= len(self.poselist):
+        if self.poseindex >= len(self.poselist):
             self.poselist = []
             cont = False
         

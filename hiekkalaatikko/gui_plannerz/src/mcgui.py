@@ -22,6 +22,7 @@ import actionlib
 from actionlib_msgs.msg import GoalStatus
 import sys
 from explorer import Explorer
+from random import randint
 
 goal_states={0:'PENDING',1:'ACTIVE',2:'PREEMPTED',3:'SUCCEEDED',4:'ABORTED',5:'REJECTED',6:'PREEMPTING',7:'RECALLING',8:'RECALLED',9:'LOST'}
 
@@ -182,7 +183,7 @@ class Widgetti(QWidget):
             for z in data.poses:
                 self.dead_pirates.append(z)
             self.dead_pirate_update = False
-            dead_update.emit()
+            self.dead_update.emit()
             
     def update_dead(self):
         if self.dead_pirate_objects:
@@ -227,9 +228,9 @@ class Widgetti(QWidget):
             print goal_states.get(status)
 
     def feedback(self, feedback):
-        print 'in the feedback lol'
         pose_stamp = feedback.base_position
         self.timer += 1
+        print 'in feedback'
         if self.pose_update_timer > 20:
             print 'omg'
             self.pose_update.emit()
@@ -383,6 +384,7 @@ class TaskPlanner():
         #self.manip_update.connect(self.manip_cb_update)
         self.openManipulator() # To ensure it's all the way opened
         self.cont = False
+        self.last_pirate = None
 
     def execute(self):
         if not self.parent.pirates:
@@ -392,18 +394,47 @@ class TaskPlanner():
             #    print 'yay'
             #self.explorer_pub.publish('Gimme sum coordinates, mate')
             #self.parent.update_textbox('Explorer', 'Asking next coordinates')
+            """
             exp_point = self.explorer.explore()
             self.cont = exp_point[3]
             self.goToPoint(exp_point[0],exp_point[1],math.radians(exp_point[2]))
             self.state = -1
             self.parent.waiting = True
+            """
+            if self.last_pirate:
+                self.parent.actionclient.send_goal(self.last_pirate, feedback_cb=self.parent.feedback)
+                luku = randint(0,2)
+                r = rospy.Rate(1.0) # 1 Hz
+                movement = Twist()
+                if luku == 1:
+                    movement.angular.z = 3.14/2 # ~45 deg/s 
+                if luku == 2:
+                    movement.angular.z = -3.14/2 # ~45 deg/s 
+                self.driver.publish(movement)
+                r.sleep()
+                self.driver.publish(Twist())
+                rospy.sleep(2.0)
+                self.parent.pirate_update = True
+                self.parent.dead_pirate_update = True
+                rospy.sleep(2.0)
+            else:
+                camerapoint = PoseStamped()
+                camerapoint.header.frame_id = 'map'
+                camerapoint.header.stamp = rospy.Time.now()
+                camerapoint.pose.position.x = 1.0
+                camerapoint.pose.position.y = 0
+                camerapoint.pose.orientation.w = 0
+                camerapoint.pose.orientation.z = 0
+                goal = MoveBaseGoal(target_pose=camerapoint)
+                self.parent.actionclient.send_goal(goal, feedback_cb=self.parent.feedback)
+            
             # Trying with just one movement, reassigned when action movement succeeded (done_callback or feedback)
             #self.explorer_pub.unregister()
         else:
             print 'executing task'
             while True:
                 if not self.parent.waiting:
-                    print 'Current state: '+str(self.state)+' - '+robot_states.get(self.state)
+                    print 'Current state: '+str(self.state)+' - '+str(robot_states.get(self.state))
                     if self.state == 0:
                         if len(self.parent.pirates) > 0 and not self.cont:
                             self.move_to_pirate()
@@ -416,8 +447,8 @@ class TaskPlanner():
                         self.grab_figure()
                         
                     elif self.state == 2:
-                        self.goHomeBase()
                         self.parent.waiting = True
+                        self.goHomeBase()
                         
                     elif self.state == 3:
                         self.parent.waiting = True
@@ -427,16 +458,34 @@ class TaskPlanner():
                             print 'No more pirates lol'
                             self.state = -1
                     elif self.state == -1:
-                        exp_point = self.explorer.explore()
+                        #exp_point = self.explorer.explore()
+                        """
                         if len(self.parent.pirates) == 0 and not self.cont and exp_point is None:
                             # Whole maps explored and no known pirates exist
                             print 'Explorer told everything is done, ending execution...'
                             break
-                        self.cont = exp_point[3]
-                        self.goToPoint(exp_point[0],exp_point[1],math.radians(exp_point[2]))
-                        self.parent.waiting = True
+                        """
+                        #self.cont = exp_point[3]
+                        #self.goToPoint(exp_point[0],exp_point[1],math.radians(exp_point[2]))
+                        #self.parent.waiting = True
+                        self.parent.actionclient.send_goal(self.last_pirate, feedback_cb=self.parent.feedback)
+                        luku = randint(0,2)
+                        r = rospy.Rate(0.5) # 1 Hz
+                        movement = Twist()
+                        if luku == 1:
+                            movement.angular.z = 3.14 # ~45 deg/s 
+                        if luku == 2:
+                            movement.angular.z = -3.14 # ~45 deg/s 
+                        self.driver.publish(movement)
+                        r.sleep()
+                        self.driver.publish(Twist())
+                        rospy.sleep(2.0)
+                        self.parent.pirate_update = True
+                        self.parent.dead_pirate_update = True
+                        rospy.sleep(2.0)
+                        self.state = 0
                     else:
-                        print 'State '+str(self.state)+' does not exists.. going back to 0 - '+robot_states.get(0)
+                        print 'State '+str(self.state)+' does not exists.. going back to 0 - '+str(robot_states.get(0))
                         self.state = 0
 
     def explorer_callback(self,data):
@@ -450,8 +499,9 @@ class TaskPlanner():
     def move_to_pirate(self):
         self.parent.actionclient.cancel_all_goals()
         self.move_goal = MoveBaseGoal(target_pose=self.parent.pirates.pop())
+        self.last_pirate = self.move_goal
         print 'Pirate at: ' + str(self.move_goal)
-        self.parent.update_textbox('Moving towards pirate:', str(self.move_goal))
+        #self.parent.update_textbox('Moving towards pirate:', str(self.move_goal))
         self.parent.actionclient.send_goal(self.move_goal, feedback_cb=self.parent.feedback)
 
     def manipulatorCb(self, msg):
@@ -465,7 +515,7 @@ class TaskPlanner():
         print 'Going to location ('+str(x)+', '+str(y)+')'
         location = PoseStamped()
         if angle is None:
-            quaternion = quaternion_from_euler(0, 0, math.atan2(y-self.explorer.pos_y, x-self.explorer.pos_x]))
+            quaternion = quaternion_from_euler(0, 0, math.atan2(y-self.explorer.pos_y, x-self.explorer.pos_x))
         else:
             quaternion = quaternion_from_euler(0, 0, angle)
         location.header.frame_id = 'map'
@@ -482,6 +532,8 @@ class TaskPlanner():
         print 'Explorer point ('+str(x)+', '+str(y)+') gotten'
         x_base = x * self.explorer.resolution - self.explorer.pos_x
         y_base = y * self.explorer.resolution - self.explorer.pos_y
+        x_base = x_base/10
+        y_base = y_base/10
         self.goToLocation(x_base,y_base,angle)
 
     def grab_figure(self):
@@ -556,7 +608,6 @@ class TaskPlanner():
 if __name__ == "__main__":
     from python_qt_binding.QtGui import QApplication
     import sys
-    print 'lol'
     rospy.init_node("gui_plannerz")
     app = QApplication(sys.argv)
     q = Widgetti()

@@ -35,6 +35,7 @@ class pirate_detector:
         self.dead_pirate_coordinates = None
         self.camera_publisher = rospy.Publisher('/ptu_servo_angles', Vector3)
         self.pcpub = rospy.Publisher('vmp', PointCloud2)
+        self.pcpub2 = rospy.Publisher('vmp2', PointCloud2)
         self.pirate_publisher = rospy.Publisher('/Pirates', Path)
         self.dead_pirate_publisher = rospy.Publisher('/Dead', Path)
         self.image_subscribe = None
@@ -69,6 +70,9 @@ class pirate_detector:
         print 'PCL callback gotten'
         tmp = pointcloud2_to_array(data)
         tmp = self.downsample_pointcloud(tmp)
+        cloud = array_to_pointcloud2(tmp)
+        cloud.header.frame_id = '/base_link'
+        self.pcpub2.publish(cloud)
         pirates = self.look_for_pirates(tmp)
         dead = self.look_for_dead_pirates(tmp)
         self.publish_pirates(pirates)
@@ -151,10 +155,10 @@ class pirate_detector:
         for y in range(len(tmp['x'])):
             floor = self.get_floor_height(tmp['z'][y]) #Lets get the lowest point in the array, that's got to be floor as there's no holes in the ground...
             for x in range(len(tmp['x'][0])):
-                if y > 2:
-                    if (tmp['z'][y][x] + 0.005) > floor:
+                if y < (len(tmp['x']) - 3):
+                    if (tmp['z'][y][x] + 0.01) > floor:
                         x1 = abs(tmp['x'][y][x])
-                        x2 = abs(tmp['x'][y + 2][x])
+                        x2 = abs(tmp['x'][y + 3][x])
                         if abs(x1 - x2) > offset:
                             accept = True
                             point = [tmp['x'][y][x], tmp['y'][y][x], tmp['z'][y][x]]
@@ -194,11 +198,14 @@ class pirate_detector:
         tmp = pointcloud_array
         #Let's look something like 1X3 objects from the cloud, they should be pirates?
         #should look from up the ground or something
+        floor_h = []
         pirates = []
         for y in range(len(tmp['x'])):
+            floor = self.get_floor_height(tmp['z'][y])
+            floor_h.append(floor)
             if y > 7:
                 for x in range(len(tmp['x'][0])):
-                    if tmp['z'][y][x] > -0.68 and tmp['z'][y][x] < -0.65 and tmp['x'][y][x] < 1.8:
+                    if tmp['z'][y][x] > -0.67 and tmp['z'][y][x] < -0.62 and tmp['x'][y][x] < 1.8:
                         x1 = abs(tmp['x'][y][x])
                         x2 = abs(tmp['x'][y - 1][x])
                         x3 = abs(tmp['x'][y - 2][x])
@@ -211,15 +218,17 @@ class pirate_detector:
                                 if not accept:
                                     break
                             if accept:
+                                print floor
                                 pirates.append(point)
+        print pirates
         path1 = Path()
         camerapoint = PoseStamped()
         for p in pirates:
             quaternion = quaternion_from_euler(0, 0, math.atan2(p[1]-0, p[0]-0))
             camerapoint.header.frame_id = 'map'
             camerapoint.header.stamp = rospy.Time.now()
-            camerapoint.pose.position.x = p[0]
-            camerapoint.pose.position.y = p[1]
+            camerapoint.pose.position.x = p[0] - 0.03
+            camerapoint.pose.position.y = p[1] + 0.04
             camerapoint.pose.orientation.w = quaternion[3]
             camerapoint.pose.orientation.z = quaternion[2]
             path1.poses.append(camerapoint)
