@@ -175,8 +175,9 @@ class Widgetti(QWidget):
             for z in data.poses:
                 self.pirates.append(z)
             self.pirate_update = False
+            print self.pirates
             # Explorer callback
-            self.taskplanner.explorer.detector_callback(data)
+            #self.taskplanner.explorer.detector_callback(data)
     
     def dead_pirate_callback(self, data):
         if self.dead_pirate_update:
@@ -190,7 +191,7 @@ class Widgetti(QWidget):
         if self.dead_pirate_objects:
             self.clear_dead()
         self.robomap.update_map(self.dead_pirates)
-        self.update_textbox('DEAD FOUND IN TOTAL: ', str(len(self.dead_pirates)))
+        #self.update_textbox('DEAD FOUND IN TOTAL: ', str(len(self.dead_pirates)))
         
     def clear_dead(self):
         for z in self.dead_pirate_objects:

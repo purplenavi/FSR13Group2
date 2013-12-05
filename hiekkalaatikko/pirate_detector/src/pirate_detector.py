@@ -215,7 +215,6 @@ class pirate_detector:
                                 print floor
                                 pirates.append(point)
         print pirates
-        pirates = pirates.sort(reverse=True)
         path1 = Path()
         camerapoint = PoseStamped()
         for p in pirates:
