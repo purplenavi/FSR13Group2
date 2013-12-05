@@ -25,6 +25,9 @@ from explorer import Explorer
 
 goal_states={0:'PENDING',1:'ACTIVE',2:'PREEMPTED',3:'SUCCEEDED',4:'ABORTED',5:'REJECTED',6:'PREEMPTING',7:'RECALLING',8:'RECALLED',9:'LOST'}
 
+# Just for more clear debugging messages
+robot_states={-1:'Exploring area',0:'Moving to pirate (if any)',1:'Grabbing pirate',2:'Taking pirate home',3:'Dropping pirate'}
+
 class Widgetti(QWidget):
     dead_update = Signal()
     pose_update = Signal()
@@ -400,17 +403,15 @@ class TaskPlanner():
             print 'executing task'
             while True:
                 if not self.parent.waiting:
+                    print 'Current state: '+str(self.state)+' - '+robot_states.get(self.state)
                     if self.state == 0:
                         if len(self.parent.pirates) > 0 and not self.cont:
-                            print 'Moving to pirate for first time'
                             self.move_to_pirate()
                             self.parent.waiting = True
                         else:
-                            print 'No pirates or explorer wants to look around, changing to exploring state'
+                            print 'No pirates or explorer wants to look around'
                             self.state = -1
-                        
                     elif self.state == 1:
-                        print 'closing'
                         self.parent.waiting = True
                         self.grab_figure()
                         
@@ -419,7 +420,6 @@ class TaskPlanner():
                         self.parent.waiting = True
                         
                     elif self.state == 3:
-                        print 'dropping'
                         self.parent.waiting = True
                         self.drop_figure()
                         rospy.sleep(2.0)
@@ -427,17 +427,16 @@ class TaskPlanner():
                             print 'No more pirates lol'
                             self.state = -1
                     elif self.state == -1:
-                        print 'exploring state'
                         exp_point = self.explorer.explore()
                         if len(self.parent.pirates) == 0 and not self.cont and exp_point is None:
                             # Whole maps explored and no known pirates exist
-                            print 'Explorer told everything is done'
+                            print 'Explorer told everything is done, ending execution...'
                             break
                         self.cont = exp_point[3]
                         self.goToPoint(exp_point[0],exp_point[1],math.radians(exp_point[2]))
                         self.parent.waiting = True
                     else:
-                        print 'Somewhy we are at unknown state.. going back to 0'
+                        print 'State '+str(self.state)+' does not exists.. going back to 0 - '+robot_states.get(0)
                         self.state = 0
 
     def explorer_callback(self,data):
