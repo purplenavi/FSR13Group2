@@ -186,6 +186,7 @@ class Widgetti(QWidget):
             self.dead_update.emit()
             
     def update_dead(self):
+        print 'Adding dead to map'
         if self.dead_pirate_objects:
             self.clear_dead()
         self.robomap.update_map(self.dead_pirates)
@@ -258,6 +259,39 @@ class Widgetti(QWidget):
             self.waiting = False
             self.timer = 0
         self.pose_update_timer += 1
+        
+    def feedback2(self, feedback):
+        pose_stamp = feedback.base_position
+        self.timer += 1
+        print 'in feedback2'
+        if self.taskplanner.move_goal and self.distance(self.taskplanner.move_goal, pose_stamp) < 0.2:
+            self.timer = 0
+            #print str(self.distance(self.pirate_detector.move_goal, pose_stamp))
+            # this check cancels the goal if the robot is "close enough"
+            # move_base will endlessly spin sometimes without this code
+            self.actionclient.cancel_goal()
+            rospy.sleep(1.0)
+            self.taskplanner.move_goal = None
+            luku = randint(0,2)
+            r = rospy.Rate(1.0) # 1 Hz
+            movement = Twist()
+            if luku == 0:
+                movement.angular.z = 0
+            if luku == 1:
+                movement.angular.z = 3.14/2 # ~45 deg/s 
+            if luku == 2:
+                movement.angular.z = -3.14/2 # ~45 deg/s 
+            self.taskplanner.driver.publish(movement)
+            r.sleep()
+            self.taskplanner.driver.publish(Twist())
+            rospy.sleep(2.0)
+            self.pirate_update = True
+            self.dead_pirate_update = True
+            rospy.sleep(2.0)
+            self.last_pirate = None
+        if self.timer > 500:
+            print 'wtf?'
+            self.actionclient.cancel_goal()
             
     def distance(self, t1, t2):
         """
@@ -289,7 +323,6 @@ class RoboMap(QGraphicsView):
         self.origin = None
         self.polygon = None
         self.point = None
-        self.points = None
         self.scene = QGraphicsScene()
         self.subscriber = rospy.Subscriber(topic, OccupancyGrid, self.callback)
         self.setScene(self.scene)
@@ -335,18 +368,14 @@ class RoboMap(QGraphicsView):
             map_y = (y - self.origin[1])/self.resolution
             map_x = -((x - self.origin[0])/self.resolution) + self.w
             tmp.append(self.draw_point(map_x, map_y, color=Qt.red))
+            print 'Added dead'
         self.parent.dead_pirate_objects = tmp
 
-    def draw_point(self, x, y, color=Qt.magenta, rad=1.0, add_point=False, message=None):
+    def draw_point(self, x, y, color=Qt.magenta, rad=1.0, message=None):
         ell = self.scene.addEllipse(x-rad, y-rad, rad*2.0, rad*2.0, color, QBrush(Qt.SolidPattern))
         if message:
             self.parent.update_textbox(message, (str(x) + ' ' + str(y)))
         ell.setZValue(2000.0)
-        if add_point:
-            if self.points:
-                self.points.append(ell)
-            else:
-                self.points = [ell]
         return ell
         
     def mousePressEvent(self, e):
@@ -385,56 +414,14 @@ class TaskPlanner():
         self.openManipulator() # To ensure it's all the way opened
         self.cont = False
         self.last_pirate = None
+        self.searching = False
 
     def execute(self):
-        if not self.parent.pirates:
-            print 'NO PIRATES ASSHOLE!'
-            #tmp = self.parent.get_data_from_camera()
-            #if tmp:
-            #    print 'yay'
-            #self.explorer_pub.publish('Gimme sum coordinates, mate')
-            #self.parent.update_textbox('Explorer', 'Asking next coordinates')
-            """
-            exp_point = self.explorer.explore()
-            self.cont = exp_point[3]
-            self.goToPoint(exp_point[0],exp_point[1],math.radians(exp_point[2]))
-            self.state = -1
-            self.parent.waiting = True
-            """
-            if self.last_pirate:
-                self.parent.actionclient.send_goal(self.last_pirate, feedback_cb=self.parent.feedback)
-                luku = randint(0,2)
-                r = rospy.Rate(1.0) # 1 Hz
-                movement = Twist()
-                if luku == 1:
-                    movement.angular.z = 3.14/2 # ~45 deg/s 
-                if luku == 2:
-                    movement.angular.z = -3.14/2 # ~45 deg/s 
-                self.driver.publish(movement)
-                r.sleep()
-                self.driver.publish(Twist())
-                rospy.sleep(2.0)
-                self.parent.pirate_update = True
-                self.parent.dead_pirate_update = True
-                rospy.sleep(2.0)
-            else:
-                camerapoint = PoseStamped()
-                camerapoint.header.frame_id = 'map'
-                camerapoint.header.stamp = rospy.Time.now()
-                camerapoint.pose.position.x = 1.0
-                camerapoint.pose.position.y = 0
-                camerapoint.pose.orientation.w = 0
-                camerapoint.pose.orientation.z = 0
-                goal = MoveBaseGoal(target_pose=camerapoint)
-                self.parent.actionclient.send_goal(goal, feedback_cb=self.parent.feedback)
-            
-            # Trying with just one movement, reassigned when action movement succeeded (done_callback or feedback)
-            #self.explorer_pub.unregister()
-        else:
-            print 'executing task'
-            while True:
-                if not self.parent.waiting:
-                    print 'Current state: '+str(self.state)+' - '+str(robot_states.get(self.state))
+        print 'executing task'
+        while True:
+            if not self.parent.waiting:
+                print 'Current state: '+str(self.state)+' - '+str(robot_states.get(self.state))
+                if self.parent.pirates:
                     if self.state == 0:
                         if len(self.parent.pirates) > 0 and not self.cont:
                             self.move_to_pirate()
@@ -456,26 +443,25 @@ class TaskPlanner():
                         rospy.sleep(2.0)
                         if not self.parent.pirates:
                             print 'No more pirates lol'
-                            self.state = -1
-                    elif self.state == -1:
-                        #exp_point = self.explorer.explore()
-                        """
-                        if len(self.parent.pirates) == 0 and not self.cont and exp_point is None:
-                            # Whole maps explored and no known pirates exist
-                            print 'Explorer told everything is done, ending execution...'
-                            break
-                        """
-                        #self.cont = exp_point[3]
-                        #self.goToPoint(exp_point[0],exp_point[1],math.radians(exp_point[2]))
-                        #self.parent.waiting = True
-                        self.parent.actionclient.send_goal(self.last_pirate, feedback_cb=self.parent.feedback)
-                        luku = randint(0,2)
-                        r = rospy.Rate(0.5) # 1 Hz
+                            self.state = 0
+                            self.parent.waiting = False
+                    else:
+                        print 'State '+str(self.state)+' does not exists.. going back to 0 - '+str(robot_states.get(0))
+                        self.state = 0
+                else:#No pirates, random movement
+                    if self.last_pirate:
+                        self.parent.actionclient.send_goal(self.last_pirate, feedback_cb=self.parent.feedback2)
+                        luku = randint(0,4)
+                        r = rospy.Rate(1.0) # 1 Hz
                         movement = Twist()
                         if luku == 1:
-                            movement.angular.z = 3.14 # ~45 deg/s 
+                            movement.angular.z = 3.14/2 # ~45 deg/s 
                         if luku == 2:
-                            movement.angular.z = -3.14 # ~45 deg/s 
+                            movement.angular.z = -3.14/2 # ~45 deg/s 
+                        if luku == 3:
+                            movement.angular.z = 3.14/2 + 1.57/2 # ~45 deg/s 
+                        if luku == 4:
+                            movement.angular.z = -3.14/2 - 1.57/2# ~45 deg/s 
                         self.driver.publish(movement)
                         r.sleep()
                         self.driver.publish(Twist())
@@ -483,10 +469,18 @@ class TaskPlanner():
                         self.parent.pirate_update = True
                         self.parent.dead_pirate_update = True
                         rospy.sleep(2.0)
-                        self.state = 0
                     else:
-                        print 'State '+str(self.state)+' does not exists.. going back to 0 - '+str(robot_states.get(0))
-                        self.state = 0
+                        camerapoint = PoseStamped()
+                        camerapoint.header.frame_id = 'map'
+                        camerapoint.header.stamp = rospy.Time.now()
+                        camerapoint.pose.position.x = 0.2
+                        camerapoint.pose.position.y = 0
+                        camerapoint.pose.orientation.w = 0
+                        camerapoint.pose.orientation.z = 0
+                        self.move_goal = MoveBaseGoal(target_pose=camerapoint)
+                        self.parent.actionclient.send_goal(self.move_goal, feedback_cb=self.parent.feedback2)
+                        self.parent.pirate_update = True
+                        self.parent.dead_pirate_update = True
 
     def explorer_callback(self,data):
         #self.explorer_update.emit()
