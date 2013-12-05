@@ -156,7 +156,7 @@ class pirate_detector:
             floor = self.get_floor_height(tmp['z'][y]) #Lets get the lowest point in the array, that's got to be floor as there's no holes in the ground...
             for x in range(len(tmp['x'][0])):
                 if y < (len(tmp['x']) - 3):
-                    if (tmp['z'][y][x] + 0.01) > floor:
+                    if (tmp['z'][y][x] + 0.01) > floor and floor < -0.69 and tmp['x'][y][x] > 0.75:
                         x1 = abs(tmp['x'][y][x])
                         x2 = abs(tmp['x'][y + 3][x])
                         if abs(x1 - x2) > offset:
@@ -168,13 +168,7 @@ class pirate_detector:
                                     break
                             if accept:
                                 dead.append(point)
-                                collisions['z'][y][x] = 3
-                            else:
-                                collisions['z'][y][x] = 0
-                    else:
-                        collisions['z'][y][x] = 0
-                else:
-                    collisions['z'][y][x] = 0
+                collisions['z'][y][x] += 0.69
         self.publish_collisions_cloud(collisions)
         path1 = Path()
         camerapoint = PoseStamped()
@@ -221,6 +215,7 @@ class pirate_detector:
                                 print floor
                                 pirates.append(point)
         print pirates
+        pirates = pirates.sort(reverse=True)
         path1 = Path()
         camerapoint = PoseStamped()
         for p in pirates:
