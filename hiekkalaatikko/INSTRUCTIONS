@@ -1,10 +1,11 @@
 How to run the software:
 Start roscore and all the other hardware:
-roslaunch AS-84.3144.launch pioneer.launch
+roslaunch AS_84_3144_launch pioneer.launch
 
 start the mapping server and navigation stack. Go to robot's ~/g2 folder and run:
 roslaunch gui_plannerz.launch
-(you could run the stack from this repo, but it doesn't have the latest version, so use the one already in the robot)
+(you could run the stack from this repo, but it doesn't have the latest version with the pointcloud transformation,
+so use the one already in the robot)
 
 Download repo, and go to the hiekkalaatikko folder
 
