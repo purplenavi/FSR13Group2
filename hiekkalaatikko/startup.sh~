@@ -1,6 +1,0 @@
-#!/bin/bash
-roslaunch $(find gui_plannerz)/gui_plannerz.launch
-rosrun map_server map_server $(find pioneer_2dnav)/map.yaml
-$(find point2point_navigation)/bin/point2point_navigation
-$(find gui_plannerz)/src/gui_plannerz.py
-
