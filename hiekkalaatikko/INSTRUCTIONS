@@ -1,0 +1,14 @@
+How to run the software:
+Start roscore and all the other hardware:
+roslaunch AS-84.3144.launch pioneer.launch
+
+cd to the hiekkalaatikko folder
+
+start the mapping server and navigation stack in gui_plannerz folder:
+roslaunch gui_plannerz.launch
+
+start the GUI in gui_plannerz/src folder:
+./mcgui.py
+
+start pirate detector in pirate_detector/src folder:
+./pirate_detector.py
