@@ -2,10 +2,11 @@ How to run the software:
 Start roscore and all the other hardware:
 roslaunch AS-84.3144.launch pioneer.launch
 
-cd to the hiekkalaatikko folder
-
-start the mapping server and navigation stack in gui_plannerz folder:
+start the mapping server and navigation stack. Go to robot's ~/g2 folder and run:
 roslaunch gui_plannerz.launch
+(you could run the stack from this repo, but it doesn't have the latest version, so use the one already in the robot)
+
+Download repo, and go to the hiekkalaatikko folder
 
 start the GUI in gui_plannerz/src folder:
 ./mcgui.py
